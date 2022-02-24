@@ -3,7 +3,7 @@
  
 An advanced player-prostitution module, feature new sex mechanics, a new progression system, tight ORomance integration, a new UI, and more.
 
-Download the entire repo to desktop then take "OSound download me to install in mo.zip" and feed it into your mod organizer
+Download the entire repo to desktop then take "OProstitution download me to install in mo.zip" and feed it into your mod organizer
 
 This mod is licensed under GPL-3. This mod may of course be forked and continued. If uploaded to Nexus, out of respect towards my creative & time investment I kindly ask that you point 75% of the DP it earns to my Nexus account (Sairion350).
 
