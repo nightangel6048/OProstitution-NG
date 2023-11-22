@@ -1,0 +1,2 @@
+$op_freq	        Approach frequency modifier
+$op_freq_tooltip	Increases the rate at which customers approach you

@@ -8,11 +8,7 @@ actor playerref
 opmain main
 oromancescript oromance
 
-ReferenceAlias Property PlayerFollowerAlias
-	ReferenceAlias Function Get()
-		return main.GetNthAlias(0) as ReferenceAlias
-	EndFunction
-EndProperty
+ReferenceAlias Property PlayerFollowerAlias Auto
 
 int Property CellBonus
 	int Function Get()
@@ -126,7 +122,7 @@ Event OnUpdate()
 
 			chance += CellBonus
 
-			chance += main.FreqModifier
+			chance += main.GetFreqModifier()
 
 			chance = PapyrusUtil.ClampInt(chance, 0, 90)
 			if main.cheat

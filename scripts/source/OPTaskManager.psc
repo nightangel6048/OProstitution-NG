@@ -15,8 +15,10 @@ Event OnInit()
 
 	main = (self as quest) as opmain
 
-	ODatabaseScript od = ostim.GetODatabase()
-	hasAnal = od.getlengthoarray(od.GetAnimationsWithAnimationClass(od.GetDatabaseOArray(), "An")) > 0
+	Actor[] dummyActors = new Actor[2]
+	dummyActors[0] = None
+	dummyActors[1] = None
+	hasAnal = OLibrary.GetRandomSceneWithAction(dummyActors, "analsex") != ""
 
 	InitAllTasks()
 EndEvent
@@ -339,31 +341,19 @@ Event OStim_PreStart(string eventName, string strArg, float numArg, Form sender)
 
 			ostim.FadeToBlack(1)
 			
-			ODatabaseScript od = ostim.GetODatabase()
-
-			int anim = od.GetAnimationsByAggression(ostim.GetODatabase().GetDatabaseOArray(), true)
-
-			int which = 0 
-			if AppearsFemale(main.client)
-				which = 1 
-			endif 
-
-			anim = od.GetAnimationsByMainActor(anim, which)
-			anim = od.GetAnimationsWithActorCount(anim, 2)
-
-			Console(od.GetLengthOArray(anim))
-
 			while !ostim.IsActorActive(main.playerref)
 				Utility.wait(1.0)
 			endwhile 
 
-			if od.GetLengthOArray(anim) < 1
-				console("Not enough anims... fallback time...")
-				ostim.WarpToAnimation(main.or.bridge.GetRandomAnimationByClass("Sx"))
-			Else
-				anim = od.GetObjectOArray(anim, OSANative.RandomInt(0, od.GetLengthOArray(anim)))
-				ostim.WarpToAnimation(od.GetSceneID(anim))
-			endif 
+			Actor[] actors = new Actor[2]
+			actors[0] = main.PlayerRef
+			actors[1] = main.client
+			String aggressiveScene = OLibrary.GetRandomSceneWithSingleActorTag(actors, 1, "aggressor")
+			if aggressiveScene == ""
+				aggressiveScene = OLibrary.GetRandomScene(actors)
+			endif
+			ostim.WarpToAnimation(aggressiveScene)
+
 			
 
 			ostim.FadeFromBlack(1)
@@ -390,19 +380,19 @@ Event OStim_Orgasm(string eventName, string strArg, float numArg, Form sender)
     	if !ostim.isfemale(orgasmer)
 
     		if HasTask(CumInsideVag)
-    			if ostim.GetCurrentAnimationClass() == "Sx"
+    			if ostim.IsVaginal()
     				SetTaskComplete(CumInsideVag)
     			endif 
     		endif 
 
     		if HasTask(CumInsideAnus)
-    			if ostim.GetCurrentAnimationClass() == "An" || (gay && (ostim.GetCurrentAnimationClass() == "Sx"))
+    			if OMetadata.FindAction(OThread.GetScene(0), "analsex") != -1 || (gay && (ostim.IsVaginal()))
     				SetTaskComplete(CumInsideAnus)
     			endif 
     		endif 
 
     		if HasTask(CumInsideMouth)
-    			if StringArrayContainsValue(blowjobclasses(), ostim.GetCurrentAnimationClass())
+    			if ostim.IsOral()
     				SetTaskComplete(CumInsideMouth)
     			endif 
     		endif 
@@ -491,35 +481,36 @@ Event OnUpdate()
 	endif 
 EndEvent
 
+Bool Function SceneHasAction(String actionTag)
+	return OMetadata.FindAction(OThread.GetScene(0), actionTag) != -1
+EndFunction
+
 Function CheckTimeTasks()
 
-		string cclass = ostim.GetCurrentAnimationClass()
-		string name = ostim.GetODatabase().GetFullName(ostim.GetCurrentAnimationOID())
-
-		if cclass == "Sx"
+		if ostim.IsVaginal()
 			TickDownTime(VaginalSex)
-		elseif (cclass == "An") || (gay && (cclass == "Sx"))
+		elseif SceneHasAction("analsex") || (gay && ostim.IsVaginal())
 			TickDownTime(AnalSex)
-		elseif StringArrayContainsValue(BlowjobClasses(), cclass)
+		elseif ostim.IsOral()
 			TickDownTime(OralSex)
-		elseif StringArrayContainsValue(HandjobClasses(), cclass)
+		elseif SceneHasAction("handjob")
 			TickDownTime(HandjobSex)
-		elseif StringArrayContainsValue(CunnilingusClasses(), cclass)
+		elseif SceneHasAction("cunnilingus") || SceneHasAction("lickingvagina")
 			TickDownTime(EatPussySex)
 			TickDownTime(VagPlaySex)
-		elseif StringArrayContainsValue(VagPlayClasses(), cclass)
+		elseif SceneHasAction("vaginalfingering") || SceneHasAction("rubbingclitoris")
 			TickDownTime(VagPlaySex)
 		endif 
 
-		if StringContains(name, "cow")
+		if OMetadata.HasSceneTag(OThread.GetScene(0), "cowgirl")
 			TickDownTime(CowgirlSex)
 		endif
 
-		if StringContains(name, "kiss")
+		if SceneHasAction("kissing")
 			TickDownTime(KissingSex)
 		endif
 
-		if StringContains(name, "69")
+		if OMetadata.HasSceneTag(OThread.GetScene(0), "sixtynine") || OMetadata.HasSceneTag(OThread.GetScene(0), "69")
 			TickDownTime(SixNineSex)
 		endif 
 

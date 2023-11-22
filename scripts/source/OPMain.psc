@@ -13,7 +13,7 @@ float property OwnersCut auto
 OPPanel property panel auto 
 OPTaskManager property taskmanager auto
 
-oromancescript property oromance auto
+ORomanceScript property oromance auto
 
 form property gold  auto
 
@@ -43,16 +43,10 @@ bool Property PublicLegal
 EndProperty
 
 
-
-int Property FreqModifier
-	int Function Get()
-		return StorageUtil.GetIntValue(none, "oprostitution.freqmod") as int
-	EndFunction
-
-	Function Set(int val)
-		StorageUtil.SetIntValue(none, "oprostitution.freqmod", val as int)
-	EndFunction
-EndProperty
+GlobalVariable Property OPFreqModifier Auto
+int Function GetFreqModifier()
+	return OPFreqModifier.value as Int
+EndFunction
 
 OPLantern property ActiveLantern auto 
 

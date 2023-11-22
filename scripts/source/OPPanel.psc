@@ -345,19 +345,19 @@ Event OnKeyDown(int keyCode)
 	outils.lock("op_panel_key", 0.033)
 	
 	if keyCode == main.or.GetLeftKey()
-		main.ostim.PlayTickSmall()
+		;main.ostim.PlayTickSmall()
 		main.or.oui.DeselectElement(yesbutton)
 		main.or.oui.SelectElement(nobutton)
 
 		selection = 0 
 	elseif keycode == main.or.GetRightKey()
-		main.ostim.PlayTickSmall()
+		;main.ostim.PlayTickSmall()
 		main.or.oui.DeselectElement(nobutton)
 		main.or.oui.SelectElement(yesbutton)
 
 		selection = 1
 	elseif keycode == Input.GetMappedKey("Activate")
-		main.ostim.PlayTickBig()
+		;main.ostim.PlayTickBig()
 		waitingForSelection = false
 	elseif keycode == Input.GetMappedKey("Tween Menu")
 		selection = 0 
