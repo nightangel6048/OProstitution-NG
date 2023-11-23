@@ -17,26 +17,19 @@ ORomanceScript property oromance auto
 
 form property gold  auto
 
-ORomanceScript property or auto
 OArousedScript property oa auto 
 
 bool property DarkenBackground auto 
 
-bool property cheat = false auto ; TODO
+bool property WithClient = false auto
 
 string property LastProstTimeKey =  "op_lastbuytime" Auto
-
-int Property ShowOverlayKey
-	int Function Get()
-		return or.ORKey.GetValueInt()
-	EndFunction
-EndProperty
 
 bool Property PublicLegal
 	bool Function Get()
 		return outils.GetNPCDataBool(PlayerRef, "op_lic")
 	EndFunction
-
+	
 	Function Set(bool var)
 		return outils.StoreNPCDataBool(PlayerRef, "op_lic", var)
 	EndFunction
@@ -46,6 +39,16 @@ EndProperty
 GlobalVariable Property OPFreqModifier Auto
 int Function GetFreqModifier()
 	return OPFreqModifier.value as Int
+EndFunction
+
+GlobalVariable Property OPShowOverlayKey Auto
+int Function GetShowOverlayKey()
+	return OPShowOverlayKey.value as Int
+EndFunction
+
+GlobalVariable Property OPDebug Auto
+bool Function GetDebug()
+	return OPDebug.value != 0
 EndFunction
 
 OPLantern property ActiveLantern auto 
@@ -86,12 +89,11 @@ int[] property lanternColor auto
 int[] LevelExpReqs
 
 OPMain Function Get() global
-	return outils.getformfromfile(0x800, "oprostitution.esp") as OPMain
+	return outils.GetFormFromFile(0x800, "OProstitution.esp") as OPMain
 EndFunction
 
 
 Event OnInit()
-	or = outils.GetFormFromFile(0x000800, "ORomance.esp") as ORomanceScript
 	oa = OArousedScript.GetOAroused()
 	PlayerRef = game.GetPlayer()
 
@@ -124,16 +126,24 @@ Event OnInit()
 
 	DarkenBackground = true 
 	ActiveLantern = none 
+	LoadGameEvents = false
+
+	UnregisterForAllModEvents()
+
+	RegisterForModEvent("ostim_scenechanged", "OStim_SceneChanged")
+	RegisterForModEvent("ostim_end", "OStim_End")
+	RegisterForModEvent("ostim_orgasm", "OStim_Orgasm")
 
 	oromance = game.GetFormFromFile(0x000800, "ORomance.esp") as ORomanceScript
 
-	RegisteredEvents = StringArray("OStim_SceneChanged", "OStim_End", "OStim_Orgasm", "OStim_PreStart", "OStim_TotalEnd")
-	RequiredVersion = 25
+	;RequiredVersion = 25
 	InstallAddon("OProstitution")
 
 	if !MiscUtil.FileExists("Data/Interface/exported/widgets/iwant/widgets/library/check.dds")
 		Debug.MessageBox("ORomance is out of date or missing. Please update for OProstitution")
 	endif
+
+	writeLog("OProstitute initialised")
 EndEvent
 
 Function SetLanternRadius()
@@ -225,24 +235,33 @@ bool Function OfferCustomer(actor npc)
 		if !tFollow && ostim.ShowTutorials
 			tFollow = true
 			ostim.DisplayToastAsync(npc.GetDisplayName() + " will now follow you", 4.0)
-			ostim.DisplayToastAsync("Press " + GetButtontag(oromance.ORKey.GetValueInt()) + " while facing them when you are ready to have sex" , 7.0)
+			ostim.DisplayToastAsync("Press " + GetButtontag(GetShowOverlayKey()) + " while facing them when you are ready to have sex" , 7.0)
 		endif 
-
-		oromance.oui.FireSuccessIncidcator(0)
-		oromance.oui.SetAsLongTermFollower(npc, true)
-		if oromance.oui.CacheRebuildNeeded()
-			oromance.oui.RebuildCacheSilent()
-		endif 
+		RegisterForKey(GetShowOverlayKey())
+		isOffer = true
+		WithClient = true
 	endif 
 
 
 	return result
 EndFunction
 
+bool isOffer = false
 Event OnKeyDown(int keyCode)
-	if keyCode == ShowOverlayKey
-		if osanative.trylock("op_main_key")
-			int k = ShowOverlayKey
+	if keyCode == GetShowOverlayKey()
+		if isOffer
+			actor target = game.GetCurrentCrosshairRef() as actor
+			if client == target
+				isOffer = false
+				Actor[] actors = new Actor[2]
+				actors[0] = PlayerRef
+				actors[1] = client
+				int threadId = OThread.QuickStart(actors)
+				UnregisterForKey(GetShowOverlayKey())
+				taskmanager.StartTask(threadId)
+			endif
+		elseif osanative.trylock("op_main_key")
+			int k = GetShowOverlayKey()
 
 			panel.ShowPanel()
 
@@ -264,7 +283,7 @@ actor Function GetStoreOwner()
 	cell area = PlayerRef.GetParentCell()
 	if (area.GetActorOwner() == none) && (area.GetFactionOwner() == none )
 		; we are not in a store 
-
+		
 		return none 
 	endif 
 
@@ -281,13 +300,13 @@ actor Function GetStoreOwner()
 		actor act = nearby[i] 
 
 		if (act.IsInFaction(innkeeper) || act.IsInFaction(merchant)) && act.IsInFaction(facowner) && !act.IsDead()
-
+			
 			return act 
 		endif 
 
 		i += 1
 	endwhile 
-
+	
 	return none 
 EndFunction
 
@@ -310,3 +329,7 @@ Function LanternTut()
 		ostim.DisplayToastAsync("Drop the lantern to begin prostitution", 5.0)
 	endif 
 EndFunction
+
+function writeLog(string logMessage)
+	ConsoleUtil.PrintMessage("OProstitution: " + logMessage)
+endFunction

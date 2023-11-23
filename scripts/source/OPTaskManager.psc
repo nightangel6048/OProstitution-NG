@@ -74,7 +74,7 @@ Function GenerateTasks(actor npc)
     	main.UpcomingPayout = 500
 
     else 
-    	int prude = main.or.getPrudishnessStat(npc)
+    	int prude = main.oromance.getPrudishnessStat(npc)
 
     	int taskCount
     	if prude < 34
@@ -208,7 +208,7 @@ Function LoadInOrgasmTask()
 		endif 
 
 	else
-		if main.or.getSexDesireStat(main.client) > 50
+		if main.oromance.getSexDesireStat(main.client) > 50
 			if ChanceRoll(45) && (main.ostim.IsFemale(main.PlayerRef))
 				SetTaskAsActive(CumInsideVag)
 				main.UpcomingRep += 100
@@ -253,7 +253,7 @@ Function LoadInSexTask()
 		endif 
 
 	else 
-		if (main.or.getSexDesireStat(main.client) > 25)
+		if (main.oromance.getSexDesireStat(main.client) > 25)
 			if ChanceRoll(60) && (main.ostim.IsFemale(main.PlayerRef))
 				SetTaskAsActive(VaginalSex)
 				return
@@ -311,170 +311,166 @@ EndFunction
 bool bAiControl
 
 bool tSex
-Event OStim_PreStart(string eventName, string strArg, float numArg, Form sender)
-	if ostim.IsPlayerInvolved() && ostim.IsActorInvolved(main.client)
-		ostim.AddSceneMetadata("oprostitution") 
+int threadId = -1
+Function StartTask(int tId)
+	threadId = tId
+	bAiControl = ostim.UseAIControl
+	ostim.UseAIControl = false 
 
-		bAiControl = ostim.UseAIControl
-		ostim.UseAIControl = false 
+	main.panel.RenderPanel()
 
-		main.panel.RenderPanel()
+	RegisterForKey(main.GetShowOverlayKey())
 
-		RegisterForKey(main.ShowOverlayKey)
+	lastSceneChangeTime = Utility.GetCurrentRealTime()
 
-		lastSceneChangeTime = Utility.GetCurrentRealTime()
-
-		gay = !(ostim.IsFemale(main.playerref)) && !(ostim.IsFemale(main.client)) 
+	gay = !(ostim.IsFemale(main.playerref)) && !(ostim.IsFemale(main.client)) 
 
 
-		if HasTask(PlayerVictim)
-			; Normally, we would never want to start an aggressive type scene like this
-			; However, marking it as true aggressive will make npcs and guards attack with OCrime
-			; So instead, we fake an aggressive scene. 
-			;
-			; This is a hack, Never do this!
+	;if HasTask(PlayerVictim)
+		; Normally, we would never want to start an aggressive type scene like this
+		; However, marking it as true aggressive will make npcs and guards attack with OCrime
+		; So instead, we fake an aggressive scene. 
+		;
+		; This is a hack, Never do this!
 
-			ostim.DisableOSAControls = true 
-			while !ostim.IsActorActive(main.PlayerRef)
-				Utility.Wait(0.75)
-			endwhile 
+		;ostim.DisableOSAControls = true 
+		;while !ostim.IsActorActive(main.PlayerRef)
+		;	Utility.Wait(0.75)
+		;endwhile 
 
-			ostim.FadeToBlack(1)
-			
-			while !ostim.IsActorActive(main.playerref)
-				Utility.wait(1.0)
-			endwhile 
+		;ostim.FadeToBlack(1)
+		
+		;while !ostim.IsActorActive(main.playerref)
+		;	Utility.wait(1.0)
+		;endwhile 
 
-			Actor[] actors = new Actor[2]
-			actors[0] = main.PlayerRef
-			actors[1] = main.client
-			String aggressiveScene = OLibrary.GetRandomSceneWithSingleActorTag(actors, 1, "aggressor")
-			if aggressiveScene == ""
-				aggressiveScene = OLibrary.GetRandomScene(actors)
-			endif
-			ostim.WarpToAnimation(aggressiveScene)
+		;Actor[] actors = new Actor[2]
+		;actors[0] = main.PlayerRef
+		;actors[1] = main.client
+		;String aggressiveScene = OLibrary.GetRandomSceneWithSingleActorTag(actors, 1, "aggressor")
+		;if aggressiveScene == ""
+		;	aggressiveScene = OLibrary.GetRandomScene(actors)
+		;endif
+		;ostim.WarpToAnimation(aggressiveScene)
 
-			
+		
 
-			ostim.FadeFromBlack(1)
-		endif 
+		;ostim.FadeFromBlack(1)
+	;endif 
 
-		CompleteIfHas(AnythingGoes)
-    	RegisterForSingleUpdate(4)
+	CompleteIfHas(AnythingGoes)
+	RegisterForSingleUpdate(4)
 
-    	if !tSex && ostim.ShowTutorials
-			tSex = true
-			outils.SetUIVisible(true)
-			outils.DisplayToastText("Hold " + GetButtontag(main.oromance.ORKey.GetValueInt()) + " to view the task panel", 7.0)
-			outils.DisplayToastText("Tasks will be marked in the panel as you complete them" , 4.0)
-			outils.DisplayToastText("Some tasks like sex positions may take some time to complete" , 5.0)
-			outils.SetUIVisible(false)
-		endif
-	endif 
+	if !tSex && ostim.ShowTutorials
+		tSex = true
+		outils.SetUIVisible(true)
+		outils.DisplayToastText("Hold " + GetButtontag(main.GetShowOverlayKey()) + " to view the task panel", 7.0)
+		outils.DisplayToastText("Tasks will be marked in the panel as you complete them" , 4.0)
+		outils.DisplayToastText("Some tasks like sex positions may take some time to complete" , 5.0)
+		outils.SetUIVisible(false)
+	endif
 
-EndEvent 
+EndFunction 
 
 Event OStim_Orgasm(string eventName, string strArg, float numArg, Form sender)
-    if ostim.hasscenemetadata("oprostitution") 
-    	actor orgasmer = ostim.GetMostRecentOrgasmedActor()
-    	if !ostim.isfemale(orgasmer)
+	if (threadId == -1) 
+		return
+	endif
+	actor orgasmer = ostim.GetMostRecentOrgasmedActor()
+	if !ostim.isfemale(orgasmer)
 
-    		if HasTask(CumInsideVag)
-    			if ostim.IsVaginal()
-    				SetTaskComplete(CumInsideVag)
-    			endif 
-    		endif 
+		if HasTask(CumInsideVag)
+			if ostim.IsVaginal()
+				SetTaskComplete(CumInsideVag)
+			endif 
+		endif 
 
-    		if HasTask(CumInsideAnus)
-    			if OMetadata.FindAction(OThread.GetScene(0), "analsex") != -1 || (gay && (ostim.IsVaginal()))
-    				SetTaskComplete(CumInsideAnus)
-    			endif 
-    		endif 
+		if HasTask(CumInsideAnus)
+			if OMetadata.FindAction(OThread.GetScene(0), "analsex") != -1 || (gay && (ostim.IsVaginal()))
+				SetTaskComplete(CumInsideAnus)
+			endif 
+		endif 
 
-    		if HasTask(CumInsideMouth)
-    			if ostim.IsOral()
-    				SetTaskComplete(CumInsideMouth)
-    			endif 
-    		endif 
-
- 
-    	else 
-    		
-    	endif 
-
-    	if orgasmer == main.PlayerRef
-    		CompleteIfHas(PlayerOrgasm)
-    	elseif orgasmer == main.client 
-    		CompleteIfHas(ClientOrgasm)
-    	endif 
+		if HasTask(CumInsideMouth)
+			if ostim.IsOral()
+				SetTaskComplete(CumInsideMouth)
+			endif 
+		endif 
 
 
-    endif 
+	else 
+		
+	endif 
+
+	if orgasmer == main.PlayerRef
+		CompleteIfHas(PlayerOrgasm)
+	elseif orgasmer == main.client 
+		CompleteIfHas(ClientOrgasm)
+	endif 
 EndEvent 
 
 Event OStim_End(string eventName, string strArg, float numArg, Form sender)
-    if ostim.hasscenemetadata("oprostitution") 
-
-
-    	if HasTask(PlayerVictim)
-    		if ostim.EndedProper
-    			SetTaskComplete(PlayerVictim)
-    		endif 
-    	endif 
-
-    	UnregisterForKey(main.ShowOverlayKey)
-    	main.panel.HidePanel()
-
-    	ostim.UseAIControl = bAiControl
-    endif 
-EndEvent
-
-Event OStim_TotalEnd(string eventName, string strArg, float numArg, Form sender)
-	if ostim.hasscenemetadata("oprostitution") 
-		if AllTasksComplete()
-			main.addexp(main.UpcomingRep)
-			main.PlayerRef.AddItem(main.gold, main.UpcomingPayout)
-			main.oromance.increaselikestat(main.client, OSANative.RandomInt(3, 9))
-
-			if chanceroll(20)
-				Debug.Notification("Recieved a tip!")
-				main.PlayerRef.AddItem(main.gold, OSANative.RandomInt(5, main.UpcomingPayout/3))
-				main.oromance.increaselovestat(main.client, 1)
-				main.oromance.oui.FireSuccessIncidcator(0)
-			endif 
-		else 
-			Debug.Notification("You missed some things...")
-
-			int rep = OSANative.RandomInt(1, 100)
-			main.addexp(-rep)
-			Debug.Notification("Lost " + rep + " reputation")
-
-			if ChanceRoll(50)
-				int goldc = OSANative.RandomInt(1, main.UpcomingPayout/2)
-				main.PlayerRef.AddItem(main.gold, goldc)
-			else 
-				Debug.Notification("The client refuses to pay")
-				main.oromance.increasehatestat(main.client, 1)
-			endif 
-			main.oromance.oui.FireSuccessIncidcator(1)
-
-			main.oromance.increasedislikestat(main.client, OSANative.RandomInt(9, 15))
-		endif
-		main.client = none
+	if (threadId == -1)
+		return
+	endif
+    
+	if HasTask(PlayerVictim)
+		if ostim.EndedProper
+			SetTaskComplete(PlayerVictim)
+		endif 
 	endif 
+
+	UnregisterForKey(main.GetShowOverlayKey())
+	main.panel.HidePanel()
+
+	ostim.UseAIControl = bAiControl
+
+	if AllTasksComplete()
+		main.addexp(main.UpcomingRep)
+		main.PlayerRef.AddItem(main.gold, main.UpcomingPayout)
+		main.oromance.increaselikestat(main.client, OSANative.RandomInt(3, 9))
+
+		if chanceroll(20)
+			Debug.Notification("Recieved a tip!")
+			main.PlayerRef.AddItem(main.gold, OSANative.RandomInt(5, main.UpcomingPayout/3))
+			main.oromance.increaselovestat(main.client, 1)
+			main.oromance.oui.FireSuccessIncidcator(0)
+		endif 
+	else 
+		Debug.Notification("You missed some things...")
+
+		int rep = OSANative.RandomInt(1, 100)
+		main.addexp(-rep)
+		Debug.Notification("Lost " + rep + " reputation")
+
+		if ChanceRoll(50)
+			int goldc = OSANative.RandomInt(1, main.UpcomingPayout/2)
+			main.PlayerRef.AddItem(main.gold, goldc)
+		else 
+			Debug.Notification("The client refuses to pay")
+			main.oromance.increasehatestat(main.client, 1)
+		endif 
+		main.oromance.oui.FireSuccessIncidcator(1)
+
+		main.oromance.increasedislikestat(main.client, OSANative.RandomInt(9, 15))
+	endif
+	main.client = none
+	threadId = -1
+	Main.WithClient = false
 EndEvent
 
 
 Event OStim_SceneChanged(string eventName, string strArg, float numArg, Form sender)
-    if ostim.hasscenemetadata("oprostitution") 
-    	RegisterForSingleUpdate(4)
+	if (threadId == -1)
+		return
+	endif
+	RegisterForSingleUpdate(4)
 
-    	lastSceneChangeTime = Utility.GetCurrentRealTime()
-    endif 
+	lastSceneChangeTime = Utility.GetCurrentRealTime() 
 EndEvent
 
 Event OnUpdate()
-	if ostim.AnimationRunning()
+	if threadId != -1 && OThread.IsRunning(threadId)
 		CheckTimeTasks()
 
 		RegisterForSingleUpdate(4)

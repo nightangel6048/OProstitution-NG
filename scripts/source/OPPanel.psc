@@ -248,12 +248,12 @@ endfunction
 bool tChoice
 Function ShowSelection()
 	selection = 1
-	main.or.oui.DeselectElement(yesbutton)
-	main.or.oui.DeselectElement(nobutton)
-	main.or.oui.SelectElement(yesbutton)
+	main.oromance.oui.DeselectElement(yesbutton)
+	main.oromance.oui.DeselectElement(nobutton)
+	main.oromance.oui.SelectElement(yesbutton)
 
-	RegisterForKey(main.or.GetLeftKey())
-	RegisterForKey(main.or.GetRightKey())
+	RegisterForKey(main.oromance.GetLeftKey())
+	RegisterForKey(main.oromance.GetRightKey())
 	RegisterForKey(Input.GetMappedKey("Activate"))
 	RegisterForKey(Input.GetMappedKey("Tween Menu"))
 
@@ -288,13 +288,13 @@ Function ShowSelection()
 endfunction 
 
 Function HideSelection()  
-	UnregisterForKey(main.or.GetLeftKey())
-	UnregisterForKey(main.or.GetRightKey())
+	UnregisterForKey(main.oromance.GetLeftKey())
+	UnregisterForKey(main.oromance.GetRightKey())
 	UnRegisterForKey(Input.GetMappedKey("Activate"))
 	UnRegisterForKey(Input.GetMappedKey("Tween Menu"))
 
-	main.or.oui.FadeElementOut(nobutton)
-	main.or.oui.FadeElementOut(yesbutton)
+	main.oromance.oui.FadeElementOut(nobutton)
+	main.oromance.oui.FadeElementOut(yesbutton)
 
 	HidePanel()
 EndFunction
@@ -344,16 +344,16 @@ Event OnKeyDown(int keyCode)
 	endif 
 	outils.lock("op_panel_key", 0.033)
 	
-	if keyCode == main.or.GetLeftKey()
+	if keyCode == main.oromance.GetLeftKey()
 		;main.ostim.PlayTickSmall()
-		main.or.oui.DeselectElement(yesbutton)
-		main.or.oui.SelectElement(nobutton)
+		main.oromance.oui.DeselectElement(yesbutton)
+		main.oromance.oui.SelectElement(nobutton)
 
 		selection = 0 
-	elseif keycode == main.or.GetRightKey()
+	elseif keycode == main.oromance.GetRightKey()
 		;main.ostim.PlayTickSmall()
-		main.or.oui.DeselectElement(nobutton)
-		main.or.oui.SelectElement(yesbutton)
+		main.oromance.oui.DeselectElement(nobutton)
+		main.oromance.oui.SelectElement(yesbutton)
 
 		selection = 1
 	elseif keycode == Input.GetMappedKey("Activate")
@@ -451,7 +451,7 @@ int[] Function RenderElement(int slot, string icon, int[] color, string Textstr)
 	
 	int size = 150
 	
-	int[] coords = main.or.oui.GetElementCordsBySlot(slot)
+	int[] coords = main.oromance.oui.GetElementCordsBySlot(slot)
 
 	;Int Bracket = iWidgets.loadLibraryWidget("uibracket")
 	Int Bracket = iWidgets.loadLibraryWidget("uibracket")

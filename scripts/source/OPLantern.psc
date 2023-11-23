@@ -9,6 +9,7 @@ opmain main
 oromancescript oromance
 
 ReferenceAlias Property PlayerFollowerAlias Auto
+ReferenceAlias Property WaitAlias Auto
 
 int Property CellBonus
 	int Function Get()
@@ -46,7 +47,7 @@ Event onload()
 	endif 
 	
 	scanFreq = 30.0 
-	if main.cheat
+	if main.GetDebug()
 		scanFreq = 1.0
 	endif 
 	
@@ -88,7 +89,7 @@ endfunction
 
 Event OnUpdate()
 	if self.Is3DLoaded()
-		if (playerref.GetDistance(self) < playerMaxDistance) && !main.oromance.oui.PlayerIsFollowed() && !main.ostim.isactoractive(playerref); player is in range, no active ORomance people, not in a scene
+		if (playerref.GetDistance(self) < playerMaxDistance) && !main.WithClient && !main.ostim.isactoractive(playerref); player is in range, not already with a client, not in a scene
 
 
 			if GetTimeOfDay() != lastTimeOfDay
@@ -116,7 +117,7 @@ Event OnUpdate()
 				chance /= 4
 			endif 
 
-			if ChanceRoll(13) || main.cheat ; + 60 / 2hrs in cell
+			if ChanceRoll(13) || main.GetDebug(); + 60 / 2hrs in cell
 				CellBonus += 2
 			endif 
 
@@ -125,10 +126,10 @@ Event OnUpdate()
 			chance += main.GetFreqModifier()
 
 			chance = PapyrusUtil.ClampInt(chance, 0, 90)
-			if main.cheat
+			if main.GetDebug()
 				console("Rolling scan with chance " + chance)
 			endif 
-			if ChanceRoll(chance) || main.cheat
+			if ChanceRoll(chance) || main.GetDebug()
 				;Console("Scan success")
 				scan()
 			endif 
@@ -166,7 +167,7 @@ Function Scan()
 	while i < l 
 		actor npc = nearby[i]
 
-		if main.cheat
+		if main.GetDebug()
 			Console("Trying: " + npc.getdisplayname())
 		endif 
 
@@ -187,15 +188,15 @@ Function Scan()
 					
 					if GetArousalChance(npc) > -15
 
-						main.or.SeedIfNeeded(npc)
-						int prude = main.or.getPrudishnessStat(npc)
+						main.oromance.SeedIfNeeded(npc)
+						int prude = main.oromance.getPrudishnessStat(npc)
 
-						if main.or.getMonogamyDesireStat(npc) > 30
-							if main.or.IsMarried(npc)
+						if main.oromance.getMonogamyDesireStat(npc) > 30
+							if main.oromance.IsMarried(npc)
 								prude += 50
 							endif 
 
-							if main.or.HasGFBF(npc)
+							if main.oromance.HasGFBF(npc)
 								prude += 25
 							endif 
 						endif 
@@ -208,7 +209,7 @@ Function Scan()
 									OSANative.unlock("op_scan")
 									return 
 								else 
-									if !main.cheat
+									if !main.GetDebug()
 										Utility.Wait(OSANative.RandomFloat(10.0, 45.0))
 									endif 
 								endif 
@@ -276,9 +277,9 @@ bool Function FollowerSetThread(actor npc)
 			endif 
 		endwhile 
 		SetAsFollower(npc, false)
-		main.oromance.oui.SetAsWaiting(npc, true)
+		SetAsWaiting(npc, true)
 	else 
-		main.oromance.oui.SetAsWaiting(npc, true)
+		SetAsWaiting(npc, true)
 	endif
 		
 		npc.EvaluatePackage()
@@ -297,6 +298,16 @@ function SetAsFollower(actor act, bool set) ; follower in literal sense, not com
 
 	act.EvaluatePackage()
 EndFunction
+
+function SetAsWaiting(actor act, bool set)
+	if set
+		WaitAlias.ForceRefTo(act)
+	else
+		WaitAlias.Clear()
+	endif
+
+	act.EvaluatePackage()
+endfunction
 
 bool Function CheckOutGoods(actor act)
 {NPC approaches player and thinks about buying them}
@@ -341,10 +352,8 @@ bool Function CheckOutGoods(actor act)
 	endif
 
 	
-	oromance.oui.SetAsFollower(act, false)
-	oromance.oui.SetAsWaiting(act, false)
-	
-	
+	SetAsFollower(act, false)
+	SetAsWaiting(act, true)
 
 	debug.SendAnimationEvent(act, "IdleForceDefaultState")
 
@@ -362,7 +371,7 @@ int Function GetArousalChance(actor act)
 			arousal -= 75
 		endif 
 
-		int sexuality = main.or.GetSexuality(act)
+		int sexuality = main.oromance.GetSexuality(act)
 		if sexuality != 1
 			if sexuality == 0
 				if playergender == AppearsFemale(act)
@@ -377,7 +386,7 @@ int Function GetArousalChance(actor act)
 			endif 
 		endif 
 
-		int sexDesire = main.or.getSexDesireStat(act)
+		int sexDesire = main.oromance.getSexDesireStat(act)
 
 		arousal += ((50.0 * (sexDesire as float / 100.0)) - 25.0) as int ; sex desire adds permanent +-/25 mod
 
