@@ -1,6 +1,7 @@
 ScriptName optaskmanager Extends quest
 import PapyrusUtil
 import OUtils
+import OPUtils
 opmain main 
 
 OSexIntegrationMain ostim 
@@ -61,13 +62,16 @@ EndFunction
 
 Function GenerateTasks(actor npc)
 	int sexdesire = main.oromance.getSexDesireStat(npc)
+	Actor[] actors = new Actor[2]
+	actors[0] = main.PlayerRef
+	actors[1] = npc
     if ChanceRoll(15)
     	activeTasks = PapyrusUtil.StringArray(1, AnythingGoes)
 
     	main.UpcomingRep = 90
     	main.UpcomingPayout = 200
 
-    elseif (sexdesire > 60 && sexdesire < 69) && ChanceRoll(80) && main.GetStoreOwner()
+    elseif (sexdesire > 60 && sexdesire < 69) && ChanceRoll(80) && main.GetStoreOwner() && OSequence.GetRandomSequenceWithSequenceTag(actors, "aggressive") != ""
     	activeTasks = PapyrusUtil.StringArray(1, PlayerVictim)
 
     	main.UpcomingRep = 350
@@ -134,7 +138,7 @@ Function GenerateTasks(actor npc)
 
     	main.UpcomingRep = taskCount * OSANative.RandomInt(95, 105)
     	main.UpcomingPayout = 150 + (taskCount * osanative.Randomint(45, 55))
-    endif 
+    endif
 
     main.UpcomingRep += osanative.randomint(-25, 25)
     main.UpcomingPayout += osanative.randomint(-50, 50)
@@ -312,51 +316,45 @@ bool bAiControl
 
 bool tSex
 int threadId = -1
-Function StartTask(int tId)
-	threadId = tId
+Function StartTask(Actor player, Actor client)
+	Actor[] actors = new Actor[2]
+	actors[0] = player
+	actors[1] = client
 	bAiControl = ostim.UseAIControl
 	ostim.UseAIControl = false 
-
+	
 	main.panel.RenderPanel()
-
+	
 	RegisterForKey(main.GetShowOverlayKey())
-
+	
 	lastSceneChangeTime = Utility.GetCurrentRealTime()
-
+	
 	gay = !(ostim.IsFemale(main.playerref)) && !(ostim.IsFemale(main.client)) 
+	
+	
+	if HasTask(PlayerVictim) ; Special Aggressive
+		ostim.FadeToBlack(1)
 
+		int builderId = OThreadBuilder.Create(actors)
 
-	;if HasTask(PlayerVictim)
-		; Normally, we would never want to start an aggressive type scene like this
-		; However, marking it as true aggressive will make npcs and guards attack with OCrime
-		; So instead, we fake an aggressive scene. 
-		;
-		; This is a hack, Never do this!
+		; No player control
+		OThreadBuilder.NoPlayerControl(builderId)
 
-		;ostim.DisableOSAControls = true 
-		;while !ostim.IsActorActive(main.PlayerRef)
-		;	Utility.Wait(0.75)
-		;endwhile 
+		; Set client as dominant
+		Actor[] dominantActors = new Actor[1]
+		dominantActors[0] = client
+		OThreadBuilder.SetDominantActors(builderId, dominantActors)
 
-		;ostim.FadeToBlack(1)
-		
-		;while !ostim.IsActorActive(main.playerref)
-		;	Utility.wait(1.0)
-		;endwhile 
+		; Aggressive sequence
+		string aggressiveSequence = OSequence.GetRandomSequenceWithSequenceTag(actors, "aggressive")
+		OThreadBuilder.SetStartingSequence(builderId, aggressiveSequence)
+		OThreadBuilder.EndAfterSequence(builderId)
 
-		;Actor[] actors = new Actor[2]
-		;actors[0] = main.PlayerRef
-		;actors[1] = main.client
-		;String aggressiveScene = OLibrary.GetRandomSceneWithSingleActorTag(actors, 1, "aggressor")
-		;if aggressiveScene == ""
-		;	aggressiveScene = OLibrary.GetRandomScene(actors)
-		;endif
-		;ostim.WarpToAnimation(aggressiveScene)
-
-		
-
-		;ostim.FadeFromBlack(1)
-	;endif 
+		threadId = OThreadBuilder.Start(builderId)
+		ostim.FadeFromBlack(1)
+	else
+		threadId = OThread.QuickStart(actors)
+	endif
 
 	CompleteIfHas(AnythingGoes)
 	RegisterForSingleUpdate(4)
@@ -372,32 +370,31 @@ Function StartTask(int tId)
 
 EndFunction 
 
-Event OStim_Orgasm(string eventName, string strArg, float numArg, Form sender)
-	if (threadId == -1) 
+Event OStim_Orgasm(string eventName, string strArg, float eventThreadId, Form sender)
+	if (threadId == -1 || threadId != eventThreadId) 
+		OUtils.Console("Wasn't our thread orgasming " + threadId + " vs " + eventThreadId)
 		return
 	endif
-	actor orgasmer = ostim.GetMostRecentOrgasmedActor()
-	if !ostim.isfemale(orgasmer)
+	Actor orgasmer = sender as Actor
+	if orgasmer == main.client
 
 		if HasTask(CumInsideVag)
-			if ostim.IsVaginal()
+			if OPUtils.SceneHasAction("vaginalsex", threadId)
 				SetTaskComplete(CumInsideVag)
 			endif 
 		endif 
 
 		if HasTask(CumInsideAnus)
-			if OMetadata.FindAction(OThread.GetScene(0), "analsex") != -1 || (gay && (ostim.IsVaginal()))
+			if OPUtils.SceneHasAction("analsex", threadId) || (gay && OPUtils.SceneHasAction("vaginalsex", threadId))
 				SetTaskComplete(CumInsideAnus)
 			endif 
 		endif 
 
 		if HasTask(CumInsideMouth)
-			if ostim.IsOral()
+			if OPUtils.SceneHasAction("blowjob", threadId)
 				SetTaskComplete(CumInsideMouth)
 			endif 
 		endif 
-
-
 	else 
 		
 	endif 
@@ -409,8 +406,9 @@ Event OStim_Orgasm(string eventName, string strArg, float numArg, Form sender)
 	endif 
 EndEvent 
 
-Event OStim_End(string eventName, string strArg, float numArg, Form sender)
-	if (threadId == -1)
+Event OStim_End(string eventName, string strArg, float endingThread, Form sender)
+	if (threadId == -1 || threadId != endingThread)
+		OUtils.Console("Wasn't our thread ending " + threadId + " vs " + endingThread)
 		return
 	endif
     
@@ -424,6 +422,10 @@ Event OStim_End(string eventName, string strArg, float numArg, Form sender)
 	main.panel.HidePanel()
 
 	ostim.UseAIControl = bAiControl
+
+	if (!OUtils.IsUIVisible())
+		OUtils.SetUIVisible(true)
+	endif
 
 	if AllTasksComplete()
 		main.addexp(main.UpcomingRep)
@@ -454,9 +456,9 @@ Event OStim_End(string eventName, string strArg, float numArg, Form sender)
 
 		main.oromance.increasedislikestat(main.client, OSANative.RandomInt(9, 15))
 	endif
+	main.SetAsLongTermFollower(main.client, false)
 	main.client = none
 	threadId = -1
-	Main.WithClient = false
 EndEvent
 
 
@@ -471,48 +473,40 @@ EndEvent
 
 Event OnUpdate()
 	if threadId != -1 && OThread.IsRunning(threadId)
-		CheckTimeTasks()
+		CheckTimeTasks(threadId)
 
 		RegisterForSingleUpdate(4)
 	endif 
 EndEvent
 
-Bool Function SceneHasAction(String actionTag)
-	return OMetadata.FindAction(OThread.GetScene(0), actionTag) != -1
-EndFunction
 
-Function CheckTimeTasks()
-
-		if ostim.IsVaginal()
+Function CheckTimeTasks(int tId)
+		if OPUtils.SceneHasAction("vaginalsex", tId)
 			TickDownTime(VaginalSex)
-		elseif SceneHasAction("analsex") || (gay && ostim.IsVaginal())
+		elseif OPUtils.SceneHasAction("analsex", tId) || OPUtils.SceneHasAction("vaginalsex", tId)
 			TickDownTime(AnalSex)
-		elseif ostim.IsOral()
+		elseif OPUtils.SceneHasAction("blowjob", tId)
 			TickDownTime(OralSex)
-		elseif SceneHasAction("handjob")
+		elseif OPUtils.SceneHasAction("handjob", tId)
 			TickDownTime(HandjobSex)
-		elseif SceneHasAction("cunnilingus") || SceneHasAction("lickingvagina")
+		elseif OPUtils.SceneHasAction("cunnilingus", tId) || OPUtils.SceneHasAction("lickingvagina", tId)
 			TickDownTime(EatPussySex)
 			TickDownTime(VagPlaySex)
-		elseif SceneHasAction("vaginalfingering") || SceneHasAction("rubbingclitoris")
+		elseif OPUtils.SceneHasAction("vaginalfingering", tId) || OPUtils.SceneHasAction("rubbingclitoris", tId)
 			TickDownTime(VagPlaySex)
 		endif 
 
-		if OMetadata.HasSceneTag(OThread.GetScene(0), "cowgirl")
+		if OMetadata.HasSceneTag(OThread.GetScene(tId), "cowgirl")
 			TickDownTime(CowgirlSex)
 		endif
 
-		if SceneHasAction("kissing")
+		if OPUtils.SceneHasAction("kissing", tId)
 			TickDownTime(KissingSex)
 		endif
 
-		if OMetadata.HasSceneTag(OThread.GetScene(0), "sixtynine") || OMetadata.HasSceneTag(OThread.GetScene(0), "69")
+		if OMetadata.HasSceneTag(OThread.GetScene(tId), "sixtynine") || OMetadata.HasSceneTag(OThread.GetScene(tId), "69")
 			TickDownTime(SixNineSex)
 		endif 
-
-
-
-
 endfunction 
 
 Function TickDownTime(string task)
