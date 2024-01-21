@@ -8,8 +8,8 @@ actor playerref
 opmain main
 oromancescript oromance
 
-ReferenceAlias Property PlayerFollowerAlias Auto
-ReferenceAlias Property WaitAlias Auto
+;ReferenceAlias Property PlayerFollowerAlias Auto
+;ReferenceAlias Property WaitAlias Auto
 
 int Property CellBonus
 	int Function Get()
@@ -73,8 +73,10 @@ Function Initialize()
 EndFunction
 
 Function RenderLight()
-	lightobj.Disable()
-	lightobj.Delete()
+	if lightobj != none 
+		lightobj.Disable()
+		lightobj.Delete()
+	endif
 
 	PO3_SKSEFunctions.SetLightRadius(lampLight, main.lanternRadius)
 	PO3_SKSEFunctions.SetLightRGB(lampLight, main.lanternColor)
@@ -89,7 +91,7 @@ endfunction
 
 Event OnUpdate()
 	if self.Is3DLoaded()
-		if (playerref.GetDistance(self) < playerMaxDistance) && !main.WithClient && !main.ostim.isactoractive(playerref); player is in range, not already with a client, not in a scene
+		if (playerref.GetDistance(self) < playerMaxDistance) && main.client == none && !main.ostim.isactoractive(playerref); player is in range, not already with a client, not in a scene
 
 
 			if GetTimeOfDay() != lastTimeOfDay
@@ -172,7 +174,7 @@ Function Scan()
 		endif 
 
 		if npc.IsGuard() && !main.PublicLegal && !npc.isdead() && !main.StoreOwner
-			FollowerSetThread(npc)
+			main.FollowerSetThread(npc)
 			Debug.Notification("License required to prostitute in public")
 			debug.SendAnimationEvent(npc, "IdleWave")
 			OSANative.unlock("op_scan")
@@ -236,84 +238,11 @@ Function Scan()
 	OSANative.unlock("op_scan")
 EndFunction
 
-
-
-bool Function FollowerSetThread(actor npc)
-
-
-	npc.SetLookAt(playerref, abPathingLookAt = false)
-	npc.SetExpressionOverride(5, 100)
-
-	float distance = npc.GetDistance(playerref)
-	utility.wait(0.1)
-	if distance > 300
-		SetAsFollower(npc, true) 
-		
-
-		int timer = 0 
-		int timer2 = 0
-
-		float oldX = npc.x 
-		while distance > 300
-			Utility.Wait(0.5)
-
-			distance = npc.GetDistance(playerref)
-			
-			timer += 1
-			if timer > 240 
-				SetAsFollower(npc, false)
-				return  false 
-			endif 
-
-			if oldX == npc.X 
-				timer2 += 1 
-
-				if timer > 20 
-					SetAsFollower(npc, false)
-					return false 
-				endif 
-			else 
-				oldX = npc.X
-			endif 
-		endwhile 
-		SetAsFollower(npc, false)
-		SetAsWaiting(npc, true)
-	else 
-		SetAsWaiting(npc, true)
-	endif
-		
-		npc.EvaluatePackage()
-	return true 
-EndFunction
-
-function SetAsFollower(actor act, bool set) ; follower in literal sense, not combat ally
-	if set
-		PlayerFollowerAlias.ForceRefTo(act)
-		;console("Setting follower")
-	Else
-		PlayerFollowerAlias.clear()
-
-		;console("Unsetting follower")
-	endif
-
-	act.EvaluatePackage()
-EndFunction
-
-function SetAsWaiting(actor act, bool set)
-	if set
-		WaitAlias.ForceRefTo(act)
-	else
-		WaitAlias.Clear()
-	endif
-
-	act.EvaluatePackage()
-endfunction
-
 bool Function CheckOutGoods(actor act)
 {NPC approaches player and thinks about buying them}
 	oromance.OUI.ExitDialogue(0)
 	oromance.oui.npc = act 
-	if !FollowerSetThread(act)
+	if !main.FollowerSetThread(act)
 		;Console("Rejecting stuck " + act.GetDisplayName())
 		return false 
 	endif 
@@ -352,15 +281,16 @@ bool Function CheckOutGoods(actor act)
 	endif
 
 	
-	SetAsFollower(act, false)
-	SetAsWaiting(act, true)
+	main.SetAsFollower(act, false)
+	main.SetAsWaiting(act, false)
+	if selected
+		main.SetAsLongTermFollower(act, true)
+	endif
 
 	debug.SendAnimationEvent(act, "IdleForceDefaultState")
 
 	return selected
 EndFunction
-
-
 
 int Function GetArousalChance(actor act)
 	int arousal = main.oa.GetArousal(act) as int 
@@ -395,19 +325,6 @@ int Function GetArousalChance(actor act)
 		return arousal 
 
 EndFunction
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 Event OnActivate(ObjectReference akActionRef)
 	MainMenu()
