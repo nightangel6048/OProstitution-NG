@@ -11,16 +11,12 @@ int GVOPFreqModifier = 0x807
 int GVOPShowOverlayKey = 0x809
 int GVOPDebug = 0xD6C
 
-int function GetVersion()
-	return 1
-endfunction
-
 Event OnInit()
     Init()
 EndEvent
 
 Event OnConfigInit()
-    ModName = "OProstitution NG"
+    ModName = "OProstitutionNG"
     Debug.Notification("OProstitution NG Initialized")
 EndEvent
 

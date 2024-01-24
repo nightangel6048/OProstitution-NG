@@ -8,6 +8,9 @@ actor playerref
 opmain main
 oromancescript oromance
 
+ReferenceAlias Property PlayerFollowerAlias Auto
+ReferenceAlias Property WaitAlias Auto
+
 int Property CellBonus
 	int Function Get()
 		return StorageUtil.GetIntValue(GetParentCell(), "op_cell", missing = 0)
@@ -23,7 +26,7 @@ float scanFreq
 
 int lastTimeOfDay 
 
-;actor owner 
+actor owner 
 
 string[] idles
 
@@ -37,8 +40,6 @@ Event onload()
 	playerref = game.GetPlayer()
 	oromance = game.GetFormFromFile(0x000800, "ORomance.esp") as ORomanceScript
 
-	;SetActorOwner(playerref.GetActorBase())
-
 	lastTimeOfDay = gettimeofday()
 
 	if lastTimeOfDay != 2
@@ -49,6 +50,8 @@ Event onload()
 	if main.GetDebug()
 		scanFreq = 1.0
 	endif 
+	
+	
 
 	idles = stringarray("IdleStudy", "IdleExamine")
 
@@ -58,6 +61,8 @@ Event onload()
 	RenderLight()
 
 	RegisterForSingleUpdate(scanFreq)
+
+
 EndEvent
 
 Function Initialize()
@@ -68,21 +73,23 @@ Function Initialize()
 EndFunction
 
 Function RenderLight()
-	if lightobj != None
-		lightobj.Disable()
-		lightobj.Delete()
-	endif
+	lightobj.Disable()
+	lightobj.Delete()
 
 	PO3_SKSEFunctions.SetLightRadius(lampLight, main.lanternRadius)
 	PO3_SKSEFunctions.SetLightRGB(lampLight, main.lanternColor)
 
+
 	lightobj = self.PlaceAtMe(lampLight, abForcePersist = true)
 	lightobj.MoveTo(self, afXOffset = 0.0, afYOffset = 0.0, afZOffset = 25.0, abMatchRotation = true)
+
 endfunction 
+
+
 
 Event OnUpdate()
 	if self.Is3DLoaded()
-		if (playerref.GetDistance(self) < playerMaxDistance) && main.client == none && !main.ostim.isactoractive(playerref); player is in range, not already with a client, not in a scene
+		if (playerref.GetDistance(self) < playerMaxDistance) && !main.WithClient && !main.ostim.isactoractive(playerref); player is in range, not already with a client, not in a scene
 
 
 			if GetTimeOfDay() != lastTimeOfDay
@@ -124,7 +131,7 @@ Event OnUpdate()
 			endif 
 			if ChanceRoll(chance) || main.GetDebug()
 				;Console("Scan success")
-				Scan()
+				scan()
 			endif 
 
 		else 
@@ -147,16 +154,16 @@ Function Scan()
 	if !OSANative.TryLock("op_scan")
 		return 
 	endif 
-	;OUtils.Console("Entering scan")
+
 	actor[] nearby = OSANative.GetActors(playerref, Radius = 2048.0)
-	nearby = outils.ShuffleActorArray(nearby)
+		nearby = outils.ShuffleActorArray(nearby)
 
 	int plevel = main.ProstitutionLevel
 	int prudeMax = 50 + (plevel * 3) ; 65 at max
 
+
 	int i = 0 
 	int l = nearby.Length
-	;OUtils.Console(l + " npcs nearby")
 	while i < l 
 		actor npc = nearby[i]
 
@@ -165,12 +172,11 @@ Function Scan()
 		endif 
 
 		if npc.IsGuard() && !main.PublicLegal && !npc.isdead() && !main.StoreOwner
-			main.FollowerSetThread(npc)
+			FollowerSetThread(npc)
 			Debug.Notification("License required to prostitute in public")
 			debug.SendAnimationEvent(npc, "IdleWave")
 			OSANative.unlock("op_scan")
 			PickUp()
-			OUtils.Console("Ending scan")
 			return 
 		endif 	
 
@@ -178,9 +184,11 @@ Function Scan()
 			
 			if npc.GetRelationshipRank(playerref) < 3 ;not close friends
 				if !npc.IsHostileToActor(playerref)
-					main.oromance.SeedIfNeeded(npc)
+					
+					
 					if GetArousalChance(npc) > -15
-						;OUtils.Console("ORomance checks started")
+
+						main.oromance.SeedIfNeeded(npc)
 						int prude = main.oromance.getPrudishnessStat(npc)
 
 						if main.oromance.getMonogamyDesireStat(npc) > 30
@@ -191,8 +199,7 @@ Function Scan()
 							if main.oromance.HasGFBF(npc)
 								prude += 25
 							endif 
-						endif
-						;OUtils.Console("Got past oromance")
+						endif 
 
 						if (prude <= prudeMax) ; only npcs who like prostitution 
 							if (utility.getcurrentgametime() - GetNPCDataFloat(npc, main.LastProstTimeKey)) > 1 ; exclude recent customers
@@ -200,7 +207,6 @@ Function Scan()
 									; that's all, NPC selected.
 
 									OSANative.unlock("op_scan")
-									;OUtils.Console("Ending scan")
 									return 
 								else 
 									if !main.GetDebug()
@@ -217,7 +223,6 @@ Function Scan()
 
 		if !Is3DLoaded()
 			OSANative.unlock("op_scan")
-			;OUtils.Console("Ending scan")
 			return 
 		endif 
 
@@ -229,19 +234,86 @@ Function Scan()
 	endif 
 
 	OSANative.unlock("op_scan")
-	;OUtils.Console("Ending scan")
 EndFunction
 
 
 
+bool Function FollowerSetThread(actor npc)
 
+
+	npc.SetLookAt(playerref, abPathingLookAt = false)
+	npc.SetExpressionOverride(5, 100)
+
+	float distance = npc.GetDistance(playerref)
+	utility.wait(0.1)
+	if distance > 300
+		SetAsFollower(npc, true) 
+		
+
+		int timer = 0 
+		int timer2 = 0
+
+		float oldX = npc.x 
+		while distance > 300
+			Utility.Wait(0.5)
+
+			distance = npc.GetDistance(playerref)
+			
+			timer += 1
+			if timer > 240 
+				SetAsFollower(npc, false)
+				return  false 
+			endif 
+
+			if oldX == npc.X 
+				timer2 += 1 
+
+				if timer > 20 
+					SetAsFollower(npc, false)
+					return false 
+				endif 
+			else 
+				oldX = npc.X
+			endif 
+		endwhile 
+		SetAsFollower(npc, false)
+		SetAsWaiting(npc, true)
+	else 
+		SetAsWaiting(npc, true)
+	endif
+		
+		npc.EvaluatePackage()
+	return true 
+EndFunction
+
+function SetAsFollower(actor act, bool set) ; follower in literal sense, not combat ally
+	if set
+		PlayerFollowerAlias.ForceRefTo(act)
+		;console("Setting follower")
+	Else
+		PlayerFollowerAlias.clear()
+
+		;console("Unsetting follower")
+	endif
+
+	act.EvaluatePackage()
+EndFunction
+
+function SetAsWaiting(actor act, bool set)
+	if set
+		WaitAlias.ForceRefTo(act)
+	else
+		WaitAlias.Clear()
+	endif
+
+	act.EvaluatePackage()
+endfunction
 
 bool Function CheckOutGoods(actor act)
 {NPC approaches player and thinks about buying them}
-	;OUtils.Console("CheckOutGoods entered")
 	oromance.OUI.ExitDialogue(0)
 	oromance.oui.npc = act 
-	if !main.FollowerSetThread(act)
+	if !FollowerSetThread(act)
 		;Console("Rejecting stuck " + act.GetDisplayName())
 		return false 
 	endif 
@@ -252,6 +324,9 @@ bool Function CheckOutGoods(actor act)
 
 
 		debug.SendAnimationEvent(act, idles[osanative.RandomInt(0, idles.Length - 1)])
+
+
+		
 
 		int like = main.oromance.getlikestat(act) as int + (main.oromance.getlovestat(act) * 3) as int 
 		int dislike = main.oromance.getdislikestat(act) as int + (main.oromance.gethatestat(act) * 3) as int 
@@ -277,58 +352,64 @@ bool Function CheckOutGoods(actor act)
 	endif
 
 	
-	main.SetAsFollower(act, false)
-	main.SetAsWaiting(act, false)
-
-	if selected
-		main.SetAsLongTermFollower(act, true)
-	endif
+	SetAsFollower(act, false)
+	SetAsWaiting(act, true)
 
 	debug.SendAnimationEvent(act, "IdleForceDefaultState")
 
 	return selected
 EndFunction
 
+
+
 int Function GetArousalChance(actor act)
-	;OUtils.Console("Getting arousal")
 	int arousal = main.oa.GetArousal(act) as int 
 
-	bool playerGender = AppearsFemale(playerref)
+		bool playerGender = AppearsFemale(playerref)
 
-	if AppearsFemale(act)
-		arousal -= 75
-	endif 
+		if AppearsFemale(act)
+			arousal -= 75
+		endif 
 
-	;OUtils.Console("Getting sexuality")
-	int sexuality = main.oromance.GetSexuality(act)
-	if sexuality != 1
-		if sexuality == 0
-			if playergender == AppearsFemale(act)
-				arousal -= 95
-			endif 
-		elseif sexuality == 2
-			if playerGender != AppearsFemale(act)
-				arousal -= 95
-			else 
-				arousal += 15
+		int sexuality = main.oromance.GetSexuality(act)
+		if sexuality != 1
+			if sexuality == 0
+				if playergender == AppearsFemale(act)
+					arousal -= 95
+				endif 
+			elseif sexuality == 2
+				if playerGender != AppearsFemale(act)
+					arousal -= 95
+				else 
+					arousal += 15
+				endif 
 			endif 
 		endif 
-	endif 
 
-	;OUtils.Console("Getting sex desire")
-	int sexDesire = main.oromance.getSexDesireStat(act)
+		int sexDesire = main.oromance.getSexDesireStat(act)
 
-	arousal += ((50.0 * (sexDesire as float / 100.0)) - 25.0) as int ; sex desire adds permanent +-/25 mod
+		arousal += ((50.0 * (sexDesire as float / 100.0)) - 25.0) as int ; sex desire adds permanent +-/25 mod
 
-	arousal += 25 
+		arousal += 25 
 
-	;OUtils.Console("Arousal is " + arousal)
-	return arousal 
+		return arousal 
 
 EndFunction
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 Event OnActivate(ObjectReference akActionRef)
-	;OUtils.Console("Lantern activated by " + akActionRef)
 	MainMenu()
 EndEvent
 
@@ -414,14 +495,14 @@ endfunction
 Function PickUp()
 	playerref.AddItem(GetFormFromFile(0x1803, "oprostitution.esp"))
 
-	UnregisterForUpdate()
+		UnregisterForUpdate()
 
-	lightobj.Disable()
-	lightobj.Delete()
+		lightobj.Disable()
+		lightobj.Delete()
 
 
-	Disable()
-	Delete()
+		Disable()
+		Delete()
 endfunction 
 
 Function LightMenu()

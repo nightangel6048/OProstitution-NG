@@ -3,11 +3,9 @@ Scriptname opinventorylanternscript extends ObjectReference
 Furniture Property lanternBase Auto
 
 Event OnContainerChanged(ObjectReference akNewContainer, ObjectReference akOldContainer)
-	OPMain main = OPMain.Get()
-	Actor player = Game.GetPlayer()
-	if (akNewContainer == None) && (akOldContainer == player) && (main.ActiveLantern == none || !main.ActiveLantern.Is3DLoaded()) ; dumped from inventory 
+	if (akNewContainer == None) && (akOldContainer == Game.getPlayer()) && (!OPMain.Get().ActiveLantern.Is3DLoaded()) ; dumped from inventory 
 		Disable()
-		objectreference lantern = player.PlaceAtMe(lanternBase, abForcePersist = true)
+		objectreference lantern = game.GetPlayer().PlaceAtMe(lanternBase, abForcePersist = true)
 		lantern.setangle(0, 0, lantern.getanglez())
 
 		lantern.SetPosition(lantern.x, lantern.y, lantern.z + 2)
@@ -16,8 +14,8 @@ Event OnContainerChanged(ObjectReference akNewContainer, ObjectReference akOldCo
 		DropFix()
 
 		Delete() 
-	elseif (akNewContainer == player)
-		main.LanternTut()
+	elseif (akNewContainer == game.GetPlayer())
+		OPMain.Get().LanternTut()
 	endif 
 EndEvent
 
