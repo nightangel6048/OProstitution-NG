@@ -21,7 +21,23 @@ OArousedScript property oa auto
 
 bool property DarkenBackground auto 
 
-bool property WithClient = false auto
+ReferenceAlias Property FollowerAlias
+	ReferenceAlias function Get()
+		return self.GetAlias(0) as ReferenceAlias
+	EndFunction
+EndProperty
+
+ReferenceAlias Property WaitAlias
+	ReferenceAlias function Get()
+		return self.GetAlias(2) as ReferenceAlias
+	EndFunction
+EndProperty
+
+ReferenceAlias Property FastFollowerAlias
+	ReferenceAlias function Get()
+		return self.GetAlias(3) as ReferenceAlias
+	EndFunction
+EndProperty
 
 string property LastProstTimeKey =  "op_lastbuytime" Auto
 
@@ -127,14 +143,14 @@ Event OnInit()
 	DarkenBackground = true 
 	ActiveLantern = none 
 	LoadGameEvents = false
+	
+	oromance = game.GetFormFromFile(0x000800, "ORomance.esp") as ORomanceScript
 
 	UnregisterForAllModEvents()
 
 	RegisterForModEvent("ostim_scenechanged", "OStim_SceneChanged")
-	RegisterForModEvent("ostim_end", "OStim_End")
-	RegisterForModEvent("ostim_orgasm", "OStim_Orgasm")
-
-	oromance = game.GetFormFromFile(0x000800, "ORomance.esp") as ORomanceScript
+	RegisterForModEvent("ostim_thread_end", "OStim_End")
+	RegisterForModEvent("ostim_actor_orgasm", "OStim_Orgasm")
 
 	;RequiredVersion = 25
 	InstallAddon("OProstitution")
@@ -142,8 +158,6 @@ Event OnInit()
 	if !MiscUtil.FileExists("Data/Interface/exported/widgets/iwant/widgets/library/check.dds")
 		Debug.MessageBox("ORomance is out of date or missing. Please update for OProstitution")
 	endif
-
-	writeLog("OProstitute initialised")
 EndEvent
 
 Function SetLanternRadius()
@@ -220,8 +234,6 @@ EndFunction
 bool tFollow
 
 bool Function OfferCustomer(actor npc)
-	
-
 	client = npc 
 	StoreOwner = GetStoreOwner()
 
@@ -239,7 +251,6 @@ bool Function OfferCustomer(actor npc)
 		endif 
 		RegisterForKey(GetShowOverlayKey())
 		isOffer = true
-		WithClient = true
 	endif 
 
 
@@ -253,12 +264,8 @@ Event OnKeyDown(int keyCode)
 			actor target = game.GetCurrentCrosshairRef() as actor
 			if client == target
 				isOffer = false
-				Actor[] actors = new Actor[2]
-				actors[0] = PlayerRef
-				actors[1] = client
-				int threadId = OThread.QuickStart(actors)
 				UnregisterForKey(GetShowOverlayKey())
-				taskmanager.StartTask(threadId)
+				taskmanager.StartTask(PlayerRef, client)
 			endif
 		elseif osanative.trylock("op_main_key")
 			int k = GetShowOverlayKey()
@@ -287,10 +294,12 @@ actor Function GetStoreOwner()
 		return none 
 	endif 
 
-	actor owner = osanative.GetActorFromBase(area.GetActorOwner())
-	if owner && !owner.IsDead()
-		return owner 
-	endif 
+	if area.GetActorOwner() != none
+		actor owner = osanative.GetActorFromBase(area.GetActorOwner())
+		if owner && !owner.IsDead()
+			return owner 
+		endif 
+	endif
 
 	faction FacOwner = area.GetFactionOwner()
 
@@ -333,3 +342,87 @@ EndFunction
 function writeLog(string logMessage)
 	ConsoleUtil.PrintMessage("OProstitution: " + logMessage)
 endFunction
+
+bool Function FollowerSetThread(actor npc)
+	npc.SetLookAt(playerref, abPathingLookAt = false)
+	npc.SetExpressionOverride(5, 100)
+
+	float distance = npc.GetDistance(playerref)
+	utility.wait(0.1)
+	if distance > 300
+		SetAsFollower(npc, true) 
+
+
+		int timer = 0 
+		int timer2 = 0
+
+		float oldX = npc.x 
+		while distance > 300
+			Utility.Wait(0.5)
+
+			distance = npc.GetDistance(playerref)
+
+			timer += 1
+			if timer > 240 
+				SetAsFollower(npc, false)
+				return  false 
+			endif 
+
+			if oldX == npc.X 
+				timer2 += 1 
+
+				if timer > 20 
+					SetAsFollower(npc, false)
+					return false 
+				endif 
+			else 
+				oldX = npc.X
+			endif 
+		endwhile 
+		SetAsFollower(npc, false)
+		SetAsWaiting(npc, true)
+	else 
+		SetAsWaiting(npc, true)
+	endif
+
+		npc.EvaluatePackage()
+	return true 
+EndFunction
+
+function SetAsFollower(actor act, bool set) ; follower in literal sense, not combat ally
+	if set
+		FollowerAlias.ForceRefTo(act)
+		;console("Setting follower")
+	Else
+		FollowerAlias.clear()
+
+		;console("Unsetting follower")
+	endif
+
+	act.EvaluatePackage()
+EndFunction
+
+function SetAsWaiting(actor act, bool set)
+	if set
+		WaitAlias.ForceRefTo(act)
+	else
+		WaitAlias.Clear()
+	endif
+
+	act.EvaluatePackage()
+endfunction
+
+function SetAsLongTermFollower(actor act, bool set) ; follower in literal sense, not combat ally
+
+	if set
+		FastFollowerAlias.ForceRefTo(act)
+		console("Setting long-term follower")
+	Else
+		FastFollowerAlias.clear()
+
+		console("Unsetting long-term follower")
+	endif
+
+	act.EvaluatePackage()
+
+EndFunction
