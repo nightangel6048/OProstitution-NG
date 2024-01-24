@@ -21,6 +21,8 @@ OArousedScript property oa auto
 
 bool property DarkenBackground auto 
 
+int property ActiveOStimThreadID auto
+
 ReferenceAlias Property FollowerAlias
 	ReferenceAlias function Get()
 		return self.GetAlias(0) as ReferenceAlias
@@ -264,9 +266,10 @@ Event OnKeyDown(int keyCode)
 			actor target = game.GetCurrentCrosshairRef() as actor
 			if client == target
 				isOffer = false
-				UnregisterForKey(GetShowOverlayKey())
 				taskmanager.StartTask(PlayerRef, client)
 			endif
+		elseif ActiveOStimThreadID != -1 && !OThread.IsRunning(ActiveOStimThreadID) ; Something has gone wrong and the scene has ended without us getting the event.
+			taskmanager.Cleanup()
 		elseif osanative.trylock("op_main_key")
 			int k = GetShowOverlayKey()
 

@@ -304,7 +304,6 @@ EndFunction
 bool bAiControl
 
 bool tSex
-int threadId = -1
 Function StartTask(Actor player, Actor client)
 	Actor[] actors = new Actor[2]
 	actors[0] = player
@@ -313,14 +312,11 @@ Function StartTask(Actor player, Actor client)
 	ostim.UseAIControl = false 
 
 	main.panel.RenderPanel()
-
-	RegisterForKey(main.GetShowOverlayKey())
-
 	lastSceneChangeTime = Utility.GetCurrentRealTime()
 
 	gay = !(ostim.IsFemale(main.playerref)) && !(ostim.IsFemale(main.client)) 
 
-	threadId = OThread.QuickStart(actors)
+	main.ActiveOStimThreadID = OThread.QuickStart(actors)
 
 	CompleteIfHas(AnythingGoes)
 	RegisterForSingleUpdate(4)
@@ -337,27 +333,28 @@ Function StartTask(Actor player, Actor client)
 EndFunction 
 
 Event OStim_Orgasm(string eventName, string strArg, float eventThreadId, Form sender)
-	if (threadId == -1 || threadId != eventThreadId) 
-		OUtils.Console("Wasn't our thread orgasming " + threadId + " vs " + eventThreadId)
+	int ourThreadID = main.ActiveOStimThreadID
+	if (ourThreadID == -1 || ourThreadID != eventThreadId) 
+		OUtils.Console("Wasn't our thread orgasming " + ourThreadID + " vs " + eventThreadId)
 		return
 	endif
 	Actor orgasmer = sender as Actor
 	if orgasmer == main.client
 
 		if HasTask(CumInsideVag)
-			if OPUtils.SceneHasAction("vaginalsex", threadId)
+			if OPUtils.SceneHasAction("vaginalsex", ourThreadID)
 				SetTaskComplete(CumInsideVag)
 			endif 
 		endif 
 
 		if HasTask(CumInsideAnus)
-			if OPUtils.SceneHasAction("analsex", threadId) || (gay && OPUtils.SceneHasAction("vaginalsex", threadId))
+			if OPUtils.SceneHasAction("analsex", ourThreadID) || (gay && OPUtils.SceneHasAction("vaginalsex", ourThreadID))
 				SetTaskComplete(CumInsideAnus)
 			endif 
 		endif 
 
 		if HasTask(CumInsideMouth)
-			if OPUtils.SceneHasAction("blowjob", threadId)
+			if OPUtils.SceneHasAction("blowjob", ourThreadID)
 				SetTaskComplete(CumInsideMouth)
 			endif 
 		endif 
@@ -373,11 +370,16 @@ Event OStim_Orgasm(string eventName, string strArg, float eventThreadId, Form se
 EndEvent
 
 Event OStim_End(string eventName, string strArg, float endingThread, Form sender)
-	if (threadId == -1 || threadId != endingThread)
-		OUtils.Console("Wasn't our thread ending " + threadId + " vs " + endingThread)
+	int ourThreadID = main.ActiveOStimThreadID
+	if (ourThreadID == -1 || ourThreadID != endingThread)
+		OUtils.Console("Wasn't our thread ending " + ourThreadID + " vs " + endingThread)
 		return
 	endif
 
+	Cleanup()
+EndEvent
+
+Function Cleanup()
 	UnregisterForKey(main.GetShowOverlayKey())
 	main.panel.HidePanel()
 
@@ -418,12 +420,12 @@ Event OStim_End(string eventName, string strArg, float endingThread, Form sender
 	endif
 	main.SetAsLongTermFollower(main.client, false)
 	main.client = none
-	threadId = -1
-EndEvent
+	main.ActiveOStimThreadID = -1
+EndFunction
 
 
 Event OStim_SceneChanged(string eventName, string strArg, float numArg, Form sender)
-	if (threadId == -1)
+	if (main.ActiveOStimThreadID == -1)
 		return
 	endif
 	RegisterForSingleUpdate(4)
@@ -432,8 +434,8 @@ Event OStim_SceneChanged(string eventName, string strArg, float numArg, Form sen
 EndEvent
 
 Event OnUpdate()
-	if threadId != -1 && OThread.IsRunning(threadId)
-		CheckTimeTasks(threadId)
+	if main.ActiveOStimThreadID != -1 && OThread.IsRunning(main.ActiveOStimThreadID)
+		CheckTimeTasks(main.ActiveOStimThreadID)
 
 		RegisterForSingleUpdate(4)
 	endif 
