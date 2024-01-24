@@ -20,7 +20,6 @@ EndProperty
 
 float playerMaxDistance = 1024.0
 float scanFreq 
-float lastScan
 
 int lastTimeOfDay 
 
@@ -146,13 +145,8 @@ EndEvent
 
 Function Scan()
 	if !OSANative.TryLock("op_scan")
-		if (Utility.GetCurrentRealTime() - lastScan) > 5.0
-			Debug.Notification("OProstituion NPC scan is taking longer than it should.")
-			OSANative.Unlock("op_scan")
-		endif
 		return 
 	endif 
-	lastScan = Utility.GetCurrentRealTime()
 	;OUtils.Console("Entering scan")
 	actor[] nearby = OSANative.GetActors(playerref, Radius = 2048.0)
 	nearby = outils.ShuffleActorArray(nearby)
@@ -176,7 +170,7 @@ Function Scan()
 			debug.SendAnimationEvent(npc, "IdleWave")
 			OSANative.unlock("op_scan")
 			PickUp()
-			;OUtils.Console("Ending scan")
+			OUtils.Console("Ending scan")
 			return 
 		endif 	
 

@@ -57,76 +57,87 @@ Function InitAllTasks()
 	LoadTask(sixninesex, "penis", "69 ", 3)
 
 	LoadTask(AnythingGoes, "heart", "Anything goes", 2)
+	LoadTask(PlayerVictim, "anger", "Dominate you", 3)
 EndFunction
 
 Function GenerateTasks(actor npc)
 	int sexdesire = main.oromance.getSexDesireStat(npc)
+	Actor[] actors = new Actor[2]
+	actors[0] = main.PlayerRef
+	actors[1] = npc
     if ChanceRoll(15)
-		activeTasks = PapyrusUtil.StringArray(1, AnythingGoes)
+    	activeTasks = PapyrusUtil.StringArray(1, AnythingGoes)
 
-		main.UpcomingRep = 90
-		main.UpcomingPayout = 200
+    	main.UpcomingRep = 90
+    	main.UpcomingPayout = 200
+
+    elseif (sexdesire > 60 && sexdesire < 69) && ChanceRoll(80) && main.GetStoreOwner() && OSequence.GetRandomSequenceWithSequenceTag(actors, "aggressive") != ""
+    	activeTasks = PapyrusUtil.StringArray(1, PlayerVictim)
+
+    	main.UpcomingRep = 350
+    	main.UpcomingPayout = 500
+
     else 
-		int prude = main.oromance.getPrudishnessStat(npc)
+    	int prude = main.oromance.getPrudishnessStat(npc)
 
-		int taskCount
-		if prude < 34
-			taskcount = OSANative.RandomInt(1, 2)
-		elseif prude < 67
-			taskcount = OSANative.RandomInt(1, 4)
-		elseif prude < 86
-			taskcount = OSANative.RandomInt(2, 6)
-		else 
-			taskcount = OSANative.RandomInt(3, 6)
-		endif
+    	int taskCount
+    	if prude < 34
+    		taskcount = OSANative.RandomInt(1, 2)
+    	elseif prude < 67
+    		taskcount = OSANative.RandomInt(1, 4)
+    	elseif prude < 86
+    		taskcount = OSANative.RandomInt(2, 6)
+    	else 
+    		taskcount = OSANative.RandomInt(3, 6)
+    	endif
 
-		activeTasks = PapyrusUtil.StringArray(0, "")
+    	activeTasks = PapyrusUtil.StringArray(0, "")
 
     	
 
 
     	; ---- generate tasks
 
-		int i = 1
-		while i <= taskCount
+    	int i = 1
+    	while i <= taskCount
 
-			if i == 1
-				if ChanceRoll(75)
-					Loadinorgasmtask()
-				else 
-					LoadInSexTask()
-				endif 
-			elseif i == 2
-				LoadInSexTask()
-			elseif i < 5 
-				if ChanceRoll(50)
-					LoadInActTask()
-				else 
-					LoadInSexTask()
-				endif 
-			elseif i == 5
-				if ChanceRoll(75)
-					LoadInActTask()
-				else 
-					LoadInSexTask()
-				endif 
-			elseif i == 6 
-				LoadInActTask()
-			endif 
+    		if i == 1
+    			if ChanceRoll(75)
+    				Loadinorgasmtask()
+    			else 
+    				LoadInSexTask()
+    			endif 
+    		elseif i == 2
+    			LoadInSexTask()
+    		elseif i < 5 
+    			if ChanceRoll(50)
+    				LoadInActTask()
+    			else 
+    				LoadInSexTask()
+    			endif 
+    		elseif i == 5
+    			if ChanceRoll(75)
+    				LoadInActTask()
+    			else 
+    				LoadInSexTask()
+    			endif 
+    		elseif i == 6 
+    			LoadInActTask()
+    		endif 
 
-			i += 1
-		EndWhile 		
+    		i += 1
+    	EndWhile 		
 
-		if activeTasks.Length < 1
-			activeTasks = PapyrusUtil.StringArray(1, AnythingGoes)
-		endif 
+    	if activeTasks.Length < 1
+    		activeTasks = PapyrusUtil.StringArray(1, AnythingGoes)
+    	endif 
 
 
     	; ----
 
 
-		main.UpcomingRep = taskCount * OSANative.RandomInt(95, 105)
-		main.UpcomingPayout = 150 + (taskCount * osanative.Randomint(45, 55))
+    	main.UpcomingRep = taskCount * OSANative.RandomInt(95, 105)
+    	main.UpcomingPayout = 150 + (taskCount * osanative.Randomint(45, 55))
     endif
 
     main.UpcomingRep += osanative.randomint(-25, 25)
@@ -320,7 +331,30 @@ Function StartTask(Actor player, Actor client)
 	
 	gay = !(ostim.IsFemale(main.playerref)) && !(ostim.IsFemale(main.client)) 
 	
-	threadId = OThread.QuickStart(actors)
+	
+	if HasTask(PlayerVictim) ; Special Aggressive
+		ostim.FadeToBlack(1)
+
+		int builderId = OThreadBuilder.Create(actors)
+
+		; No player control
+		OThreadBuilder.NoPlayerControl(builderId)
+
+		; Set client as dominant
+		Actor[] dominantActors = new Actor[1]
+		dominantActors[0] = client
+		OThreadBuilder.SetDominantActors(builderId, dominantActors)
+
+		; Aggressive sequence
+		string aggressiveSequence = OSequence.GetRandomSequenceWithSequenceTag(actors, "aggressive")
+		OThreadBuilder.SetStartingSequence(builderId, aggressiveSequence)
+		OThreadBuilder.EndAfterSequence(builderId)
+
+		threadId = OThreadBuilder.Start(builderId)
+		ostim.FadeFromBlack(1)
+	else
+		threadId = OThread.QuickStart(actors)
+	endif
 
 	CompleteIfHas(AnythingGoes)
 	RegisterForSingleUpdate(4)
@@ -377,6 +411,12 @@ Event OStim_End(string eventName, string strArg, float endingThread, Form sender
 		OUtils.Console("Wasn't our thread ending " + threadId + " vs " + endingThread)
 		return
 	endif
+    
+	if HasTask(PlayerVictim)
+		if ostim.EndedProper
+			SetTaskComplete(PlayerVictim)
+		endif 
+	endif 
 
 	UnregisterForKey(main.GetShowOverlayKey())
 	main.panel.HidePanel()
@@ -522,6 +562,7 @@ string property SixNineSex = "69_sex" auto
 
 
 string property AnythingGoes = "special_anything" auto 
+string property PlayerVictim = "special_aggressive" auto
 
 Function LoadTask(string taskId, string Icon, string name, int colorType)
 	AllTasks = PapyrusUtil.PushString(AllTasks, taskid)
