@@ -36,6 +36,21 @@ int[] colorPink
 int[] colorGreen 
 int[] colorLightRed
 int[] colorBlue
+
+int SlotCenter = 1
+int SlotLeftMiddle = 3
+int SlotRightMiddle = 2
+
+int SlotQuarter = 4
+int SlotQuarterSecond = 5
+int SlotQuarterThird = 6
+int SlotQuarterFourth = 7
+
+int SlotLeftFar = 8
+int SlotLeftClose = 9
+int SlotRightClose = 10
+int SlotRightFar = 11
+
 Event OnInit()
 	iWidgets = game.GetFormFromFile(0x000800, "iWant Widgets.esl") as iwant_widgets
 
@@ -248,12 +263,12 @@ endfunction
 bool tChoice
 Function ShowSelection()
 	selection = 1
-	main.oromance.oui.DeselectElement(yesbutton)
-	main.oromance.oui.DeselectElement(nobutton)
-	main.oromance.oui.SelectElement(yesbutton)
+	DeselectElement(yesbutton)
+	DeselectElement(nobutton)
+	SelectElement(yesbutton)
 
-	RegisterForKey(main.oromance.GetLeftKey())
-	RegisterForKey(main.oromance.GetRightKey())
+	RegisterForKey(main.OPNavigateLeftKey)
+	RegisterForKey(main.OPNavigateRightKey)
 	RegisterForKey(Input.GetMappedKey("Activate"))
 	RegisterForKey(Input.GetMappedKey("Tween Menu"))
 
@@ -280,7 +295,7 @@ Function ShowSelection()
 		outils.DisplayToastText("You are being offered a prostitution job", 3.0)
 		outils.DisplayToastText("On the right are the tasks you will have to complete during sex", 4.5)
 		outils.DisplayToastText("On the left is information about rewards", 4.0)
-		outils.DisplayToastText("Navigate your choices with " + GetButtontag(main.oromance.GetLeftKey()) + " and " +  GetButtontag(main.oromance.GetRightKey()) + ", and accept with " + GetButtontag(Input.GetMappedKey("Activate")), 6.0)
+		outils.DisplayToastText("Navigate your choices with " + GetButtontag(main.OPNavigateLeftKey) + " and " +  GetButtontag(main.OPNavigateRightKey) + ", and accept with " + GetButtontag(Input.GetMappedKey("Activate")), 6.0)
 
 		outils.SetUIVisible(false)
 		
@@ -288,13 +303,13 @@ Function ShowSelection()
 endfunction 
 
 Function HideSelection()  
-	UnregisterForKey(main.oromance.GetLeftKey())
-	UnregisterForKey(main.oromance.GetRightKey())
+	UnregisterForKey(main.OPNavigateLeftKey)
+	UnregisterForKey(main.OPNavigateRightKey)
 	UnRegisterForKey(Input.GetMappedKey("Activate"))
 	UnRegisterForKey(Input.GetMappedKey("Tween Menu"))
 
-	main.oromance.oui.FadeElementOut(nobutton)
-	main.oromance.oui.FadeElementOut(yesbutton)
+	FadeElementOut(nobutton)
+	FadeElementOut(yesbutton)
 
 	HidePanel()
 EndFunction
@@ -344,20 +359,17 @@ Event OnKeyDown(int keyCode)
 	endif 
 	outils.lock("op_panel_key", 0.033)
 	
-	if keyCode == main.oromance.GetLeftKey()
-		;main.ostim.PlayTickSmall()
-		main.oromance.oui.DeselectElement(yesbutton)
-		main.oromance.oui.SelectElement(nobutton)
+	if keyCode == main.OPNavigateLeftKey
+		DeselectElement(yesbutton)
+		SelectElement(nobutton)
 
 		selection = 0 
-	elseif keycode == main.oromance.GetRightKey()
-		;main.ostim.PlayTickSmall()
-		main.oromance.oui.DeselectElement(nobutton)
-		main.oromance.oui.SelectElement(yesbutton)
+	elseif keycode == main.OPNavigateRightKey
+		DeselectElement(nobutton)
+		SelectElement(yesbutton)
 
 		selection = 1
 	elseif keycode == Input.GetMappedKey("Activate")
-		;main.ostim.PlayTickBig()
 		waitingForSelection = false
 	elseif keycode == Input.GetMappedKey("Tween Menu")
 		selection = 0 
@@ -383,7 +395,6 @@ Function ShowPanel()
 		iWidgets.sendToBack(background)
 		FadeWidgetIn(background, 50)
 	endif 
-
 
 	int i = 0 
 	int l = 6 
@@ -446,32 +457,26 @@ Function SetTaskByID(int id, int[] task)
 EndFunction
 
 
-;------------- OUI copypaste
+;-------------- From ORomance OUI --------------
+
+int Y_OFFSET = 200
+int SIZE = 150
 int[] Function RenderElement(int slot, string icon, int[] color, string Textstr) 
 	
-	int size = 150
+	int[] coords = GetElementCordsBySlot(slot)
 	
-	int[] coords = main.oromance.oui.GetElementCordsBySlot(slot)
-
-	;Int Bracket = iWidgets.loadLibraryWidget("uibracket")
-	Int Bracket = iWidgets.loadLibraryWidget("uibracket")
+	Int Bracket = iWidgets.loadLibraryWidget("op_selection")
 	iwidgets.setVisible(Bracket, 0)
-	iWidgets.setSize(Bracket, size, size)
+	iWidgets.setSize(Bracket, SIZE, SIZE)
 	iWidgets.setPos(Bracket, coords[0] , coords[1])
-
-;	float time = game.GetRealHoursPassed() * 60 * 60
 	
 	int core = iWidgets.loadLibraryWidget(icon)
-	iWidgets.setSize(core, size/4, size/4)
+	iWidgets.setSize(core, SIZE/4, SIZE/4)
 	iWidgets.setPos(core, coords[0] , coords[1])
 	iWidgets.setRGB(core, color[0], color[1], color[2])
 
-;	OsexIntegrationMain.Console((game.GetRealHoursPassed() * 60 * 60) - time)
-
-	;int text = iWidgets.loadText(Textstr, font = textfont, size = 24 )
 	int text = iWidgets.loadText(textstr, size = 24 )
 	iWidgets.setPos(text, coords[0] , coords[1] - 45)
-
 
 	iwidgets.setTransparency(bracket, 0)
 	iwidgets.setTransparency(core, 0)
@@ -481,15 +486,78 @@ int[] Function RenderElement(int slot, string icon, int[] color, string Textstr)
 	iWidgets.setVisible(core)
 	iWidgets.setVisible(text)
 
-
 	int[] Element = new int[4]
 	Element[0] = Bracket
 	Element[1] = core
 	Element[2] = text
 	Element[3] = -1
 
-	
-
-
 	return Element
 EndFunction
+
+int[] function GetElementCordsBySlot(int slot)
+	int[] coords = new int[2]
+
+	
+	if slot == slotCenter 
+		coords[0] = (1280/2)
+	elseif slot == SlotLeftMiddle
+		coords[0] = (1280/2) - (1280/6)
+	elseif slot == SlotRightMiddle
+		coords[0] = (1280/2) + (1280/6)
+	elseif slot == SlotQuarter
+		coords[0] = (1280/2) - (1280/4)
+	elseif slot == SlotQuarterSecond
+		coords[0] = (1280/2) - ((1280/4) / 3)
+	elseif slot == SlotQuarterThird
+		coords[0] = (1280/2) + ((1280/4) / 3)
+	elseif slot == SlotQuarterFourth
+		coords[0] = (1280/2) + (1280/4)
+
+	elseif slot == SlotLeftFar
+		coords[0] = (1280/2) - (1280/4)
+	elseif slot == SlotLeftClose 
+		coords[0] = (1280/2) - (1280/8)
+	elseif slot == SlotRightClose
+		coords[0] = (1280/2) + (1280/8)
+	elseif slot == slotRightFar
+		coords[0] = (1280/2) + (1280/4)
+	endif
+
+	coords[1] =  (720/2) + Y_OFFSET
+	return coords
+EndFunction
+
+function DeselectElement(int[] element)
+	iwidgets.setSize(element[0], (SIZE * 0.75) as int, (SIZE * 0.75) as int)
+	iwidgets.setSize(element[1], ((SIZE/4) * 0.75) as int, ((SIZE/4) * 0.75) as int)
+
+
+	iWidgets.doTransitionByTime(element[0], 50, seconds = 0.25, targetAttribute = "alpha", easingClass = "none", easingMethod = "none", delay = 0.0)
+	iWidgets.doTransitionByTime(element[1], 50, seconds = 0.25, targetAttribute = "alpha", easingClass = "none", easingMethod = "none", delay = 0.0)
+	iWidgets.doTransitionByTime(element[2], 0, seconds = 0.25, targetAttribute = "alpha", easingClass = "none", easingMethod = "none", delay = 0.0)
+	iWidgets.doTransitionByTime(element[3], 0, seconds = 0.25, targetAttribute = "alpha", easingClass = "none", easingMethod = "none", delay = 0.0)
+EndFunction
+
+function SelectElement(int[] element)
+	iwidgets.setSize(element[0], SIZE , SIZE)
+	iwidgets.setSize(element[1], (SIZE/4), (SIZE/4))
+
+	int i = 0
+	int l = element.Length
+
+	while i < l
+		iWidgets.doTransitionByTime(element[i], 100, seconds = 0.25, targetAttribute = "alpha", easingClass = "none", easingMethod = "none", delay = 0.0)
+		i += 1
+	EndWhile
+EndFunction
+
+function FadeElementOut(int[] element)
+	int i = 0
+	int l = element.Length
+
+	while i < l
+		iWidgets.doTransitionByTime(element[i], 0, seconds = 0.25, targetAttribute = "alpha", easingClass = "none", easingMethod = "none", delay = 0.0)
+		i += 1
+	EndWhile
+endfunction

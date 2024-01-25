@@ -47,7 +47,7 @@ Event onload()
 	endif 
 	
 	scanFreq = 30.0 
-	if main.GetDebug()
+	if main.OPDebug
 		scanFreq = 1.0
 	endif 
 	
@@ -119,19 +119,19 @@ Event OnUpdate()
 				chance /= 4
 			endif 
 
-			if ChanceRoll(13) || main.GetDebug(); + 60 / 2hrs in cell
+			if ChanceRoll(13) || main.OPDebug; + 60 / 2hrs in cell
 				CellBonus += 2
 			endif 
 
 			chance += CellBonus
 
-			chance += main.GetFreqModifier()
+			chance += main.OPFreqModifier
 
 			chance = PapyrusUtil.ClampInt(chance, 0, 90)
-			if main.GetDebug()
+			if main.OPDebug
 				console("Rolling scan with chance " + chance)
 			endif 
-			if ChanceRoll(chance) || main.GetDebug()
+			if ChanceRoll(chance) || main.OPDebug
 				;Console("Scan success")
 				scan()
 			endif 
@@ -169,7 +169,7 @@ Function Scan()
 	while i < l 
 		actor npc = nearby[i]
 
-		if main.GetDebug()
+		if main.OPDebug
 			Console("Trying: " + npc.getdisplayname())
 		endif 
 
@@ -211,7 +211,7 @@ Function Scan()
 									OSANative.unlock("op_scan")
 									return 
 								else 
-									if !main.GetDebug()
+									if !main.OPDebug
 										Utility.Wait(OSANative.RandomFloat(10.0, 45.0))
 									endif 
 								endif 
@@ -240,8 +240,8 @@ EndFunction
 
 bool Function CheckOutGoods(actor act)
 {NPC approaches player and thinks about buying them}
-	oromance.OUI.ExitDialogue(0)
-	oromance.oui.npc = act 
+	;oromance.OUI.ExitDialogue(0)
+	;oromance.oui.npc = act 
 	if !main.FollowerSetThread(act)
 		;Console("Rejecting stuck " + act.GetDisplayName())
 		return false 

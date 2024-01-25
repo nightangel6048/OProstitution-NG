@@ -324,7 +324,7 @@ Function StartTask(Actor player, Actor client)
 	if !tSex && ostim.ShowTutorials
 		tSex = true
 		outils.SetUIVisible(true)
-		outils.DisplayToastText("Hold " + GetButtontag(main.GetShowOverlayKey()) + " to view the task panel", 7.0)
+		outils.DisplayToastText("Hold " + GetButtontag(main.OPShowOverlayKey) + " to view the task panel", 7.0)
 		outils.DisplayToastText("Tasks will be marked in the panel as you complete them" , 4.0)
 		outils.DisplayToastText("Some tasks like sex positions may take some time to complete" , 5.0)
 		outils.SetUIVisible(false)
@@ -380,7 +380,7 @@ Event OStim_End(string eventName, string strArg, float endingThread, Form sender
 EndEvent
 
 Function Cleanup()
-	UnregisterForKey(main.GetShowOverlayKey())
+	UnregisterForKey(main.OPShowOverlayKey)
 	main.panel.HidePanel()
 
 	ostim.UseAIControl = bAiControl

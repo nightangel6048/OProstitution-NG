@@ -23,6 +23,12 @@ bool property DarkenBackground auto
 
 int property ActiveOStimThreadID auto
 
+string FREQ_KEY = "op_freq"
+string OVERLAY_KEY = "op_overlaykey"
+string DEBUG_TOGGLE_KEY = "op_debug"
+string LEFT_NAV_KEY = "op_left_nav"
+string RIGHT_NAV_KEY = "op_right_nav"
+
 ReferenceAlias Property FollowerAlias
 	ReferenceAlias function Get()
 		return self.GetAlias(0) as ReferenceAlias
@@ -54,20 +60,35 @@ bool Property PublicLegal
 EndProperty
 
 
-GlobalVariable Property OPFreqModifier Auto
-int Function GetFreqModifier()
-	return OPFreqModifier.value as Int
-EndFunction
+int Property OPFreqModifier
+	int function Get()
+		return StorageUtil.GetIntValue(none, FREQ_KEY, 0)
+	endfunction
+endproperty
 
-GlobalVariable Property OPShowOverlayKey Auto
-int Function GetShowOverlayKey()
-	return OPShowOverlayKey.value as Int
-EndFunction
+int Property OPShowOverlayKey
+	int function Get()
+		return StorageUtil.GetIntValue(none, OVERLAY_KEY, 40)
+	endfunction
+EndProperty
 
-GlobalVariable Property OPDebug Auto
-bool Function GetDebug()
-	return OPDebug.value != 0
-EndFunction
+bool Property OPDebug
+	bool function Get()
+		return StorageUtil.GetIntValue(none, DEBUG_TOGGLE_KEY, 0) != 0
+	endfunction
+EndProperty
+
+int Property OPNavigateLeftKey
+	int function Get()
+		return StorageUtil.GetIntValue(none, LEFT_NAV_KEY, 203)
+	endfunction
+endproperty
+
+int Property OPNavigateRightKey
+	int function Get()
+		return StorageUtil.GetIntValue(none, RIGHT_NAV_KEY, 205)
+	endfunction
+endproperty
 
 OPLantern property ActiveLantern auto 
 
@@ -156,10 +177,6 @@ Event OnInit()
 
 	;RequiredVersion = 25
 	InstallAddon("OProstitution")
-
-	if !MiscUtil.FileExists("Data/Interface/exported/widgets/iwant/widgets/library/check.dds")
-		Debug.MessageBox("ORomance is out of date or missing. Please update for OProstitution")
-	endif
 EndEvent
 
 Function SetLanternRadius()
@@ -249,9 +266,9 @@ bool Function OfferCustomer(actor npc)
 		if !tFollow && ostim.ShowTutorials
 			tFollow = true
 			ostim.DisplayToastAsync(npc.GetDisplayName() + " will now follow you", 4.0)
-			ostim.DisplayToastAsync("Press " + GetButtontag(GetShowOverlayKey()) + " while facing them when you are ready to have sex" , 7.0)
+			ostim.DisplayToastAsync("Press " + GetButtontag(OPShowOverlayKey) + " while facing them when you are ready to have sex" , 7.0)
 		endif 
-		RegisterForKey(GetShowOverlayKey())
+		RegisterForKey(OPShowOverlayKey)
 		isOffer = true
 	endif 
 
@@ -261,7 +278,7 @@ EndFunction
 
 bool isOffer = false
 Event OnKeyDown(int keyCode)
-	if keyCode == GetShowOverlayKey()
+	if keyCode == OPShowOverlayKey
 		if isOffer
 			actor target = game.GetCurrentCrosshairRef() as actor
 			if client == target
@@ -271,7 +288,7 @@ Event OnKeyDown(int keyCode)
 		elseif ActiveOStimThreadID != -1 && !OThread.IsRunning(ActiveOStimThreadID) ; Something has gone wrong and the scene has ended without us getting the event.
 			taskmanager.Cleanup()
 		elseif osanative.trylock("op_main_key")
-			int k = GetShowOverlayKey()
+			int k = OPShowOverlayKey
 
 			panel.ShowPanel()
 
