@@ -42,7 +42,7 @@ Event OnInit()
 	if iWidgets == None
 		iWidgets = game.GetFormFromFile(0x000800, "iWant Widgets.esp") as iwant_widgets
 		if iWidgets == None
-			debug.MessageBox("ORomance: iWant Widgets is not installed, install failed. Please exit now and reread the requirements page")
+			debug.MessageBox("OProstitution: iWant Widgets is not installed, install failed. Please exit now and reread the requirements page")
 		endif
 	endif 
 
@@ -105,8 +105,8 @@ int[] nobutton
 int[] yesbutton
 
 Function RenderSelection()
-	nobutton = RenderElement(3, "ecks", colorLightRed, "Decline")
-	yesbutton = RenderElement(2, "check", colorGreen, "Accept")
+	nobutton = RenderElement(3, "op_cross", colorLightRed, "Decline")
+	yesbutton = RenderElement(2, "op_checkmark", colorGreen, "Accept")
 endfunction 
 
 Function RenderPanel()
@@ -152,14 +152,14 @@ Function RenderPanel()
 			iwidgets.setTransparency(feeamount, 0)
 	endif 
 
-	divider = iWidgets.loadLibraryWidget("box")
+	divider = iWidgets.loadLibraryWidget("op_box")
 		iWidgets.setPos(divider, wCenter , hCenter)
 		iwidgets.setTransparency(divider, 0)
 		iwidgets.setSize(divider, 240, 1)
 		iWidgets.setRGB(divider, 255, 255, 255)
 
 	if main.DarkenBackground
-		background = iWidgets.loadLibraryWidget("box")
+		background = iWidgets.loadLibraryWidget("op_box")
 		iwidgets.setSize(background, 920, 1280)
 		iWidgets.setPos(background,  640, 360)
 		iwidgets.setTransparency(background, 0)
@@ -234,7 +234,7 @@ Function RenderTask(int id, string taskID, int taskTotalCount)
 		endif 
 		iWidgets.setRGB(task[1], color[0], color[1], color[2])
 
-	task[2] = iWidgets.loadLibraryWidget("check") 
+	task[2] = iWidgets.loadLibraryWidget("op_checkmark") 
 		iWidgets.setPos(task[2],  w - 88 , H)
 		iwidgets.setTransparency(task[2], 0)
 		iwidgets.setSize(task[2], 45, 45)
