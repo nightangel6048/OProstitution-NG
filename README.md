@@ -3,8 +3,6 @@
  
 An advanced player-prostitution module, feature new sex mechanics, a new progression system, tight ORomance integration, a new UI, and more.
 
-Download the entire repo to desktop then take "OProstitution download me to install in mo.zip" and feed it into your mod organizer
-
 This mod is licensed under GPL-3. This mod may of course be forked and continued. If uploaded to Nexus, out of respect towards my creative & time investment I kindly ask that you point 75% of the DP it earns to my Nexus account (Sairion350).
 
 Desc:
@@ -56,33 +54,33 @@ Since this mod has heavy roleplay potential and involves hanging around one area
 FAQ
 
 > Will women approach me if I'm playing as a woman? Can I use this as a male char?
+
 That is determined by ORomance's sexuality option. However, women have a lower chance across the board of approaching even if you play as a male. So this particular addon is usually better played with a female char, but both can work!
 
 >I'm having trouble using the prostitution confirmation menu
+
 The menu's controls are read from ORomance's menus. If you have a controller or something you will want to do some remapping and testing with ORomance. Once ORomance is working for you, OProstitution's menus will also start working.
 
 >Nobody is showing up to me
+
 Your first customer may take a full night of waiting to appear, if you're waiting longer than that then more than likely nobody around you is interested in prostitution and you should move to a new place with new people
 
->MCM?
-In OStim's addons tab.
-
 >If I place my lantern during the daytime do I have to pick it up and replace it when it gets dark to get better traffic? Also does it help to move the lantern around the room i'm in
+
 No, you don't need to move the lantern unless you are moving to a new place completely, and the radius is big enough that you can set it anywhere in a place like an inn and move around freely without being next to it.
 
 >I get a "someone else is using this" message with the lantern
+
 Harmless side-effect, please ignore until I get a proper way to hide it in!
 
 >My client finished before they were satisfied with the sex act?
+
 Slow down and take breaks from time to time
 
->There is a conflict with OAlign
-Just a shared file, no real conflict. Either can overwrite.
-
 >Can I place multiple lanterns?
+
 Yes, but only 1 per area. 
 
-Some icons courtesy: https://www.flaticon.com/packs/human-body-13?word=body
 
 
 
