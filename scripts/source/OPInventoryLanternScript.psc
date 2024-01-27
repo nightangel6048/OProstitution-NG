@@ -1,6 +1,7 @@
 Scriptname opinventorylanternscript extends ObjectReference  
 
 Furniture Property lanternBase Auto
+Quest Property WorldInteraction Auto
 
 Event OnContainerChanged(ObjectReference akNewContainer, ObjectReference akOldContainer)
 	if (akNewContainer == None) && (akOldContainer == Game.getPlayer()) && (!OPMain.Get().ActiveLantern.Is3DLoaded()) ; dumped from inventory 
@@ -22,7 +23,5 @@ EndEvent
 
 
 Function DropFix()
-	quest wi = outils.GetFormFromFile(0x18965, "skyrim.esm") as quest 
-
-	wi.stop()
+	WorldInteraction.Stop()
 EndFunction

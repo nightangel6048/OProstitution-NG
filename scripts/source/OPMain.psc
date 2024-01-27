@@ -1,5 +1,5 @@
 ScriptName OPMain Extends OStimAddon 
-import outils 
+import outils
 
 ;todo disable prost when or follower active
  
@@ -13,11 +13,11 @@ float property OwnersCut auto
 OPPanel property panel auto 
 OPTaskManager property taskmanager auto
 
-ORomanceScript property oromance auto
-
 form property gold  auto
 
 OArousedScript property oa auto 
+
+OCR_AttractionUtil property attraction auto
 
 bool property DarkenBackground auto 
 
@@ -29,23 +29,14 @@ string DEBUG_TOGGLE_KEY = "op_debug"
 string LEFT_NAV_KEY = "op_left_nav"
 string RIGHT_NAV_KEY = "op_right_nav"
 
-ReferenceAlias Property FollowerAlias
-	ReferenceAlias function Get()
-		return self.GetAlias(0) as ReferenceAlias
-	EndFunction
-EndProperty
+ReferenceAlias Property FollowerAlias auto
 
-ReferenceAlias Property WaitAlias
-	ReferenceAlias function Get()
-		return self.GetAlias(2) as ReferenceAlias
-	EndFunction
-EndProperty
+ReferenceAlias Property WaitAlias auto
 
-ReferenceAlias Property FastFollowerAlias
-	ReferenceAlias function Get()
-		return self.GetAlias(3) as ReferenceAlias
-	EndFunction
-EndProperty
+ReferenceAlias Property FastFollowerAlias auto
+
+Faction Property InnkeeperFaction auto
+Faction Property MerchantFaction auto
 
 string property LastProstTimeKey =  "op_lastbuytime" Auto
 
@@ -58,7 +49,6 @@ bool Property PublicLegal
 		return outils.StoreNPCDataBool(PlayerRef, "op_lic", var)
 	EndFunction
 EndProperty
-
 
 int Property OPFreqModifier
 	int function Get()
@@ -134,15 +124,12 @@ EndFunction
 
 Event OnInit()
 	oa = OArousedScript.GetOAroused()
-	PlayerRef = game.GetPlayer()
-
-	gold = outils.GetFormFromFile(0xf, "skyrim.esm") 
+	PlayerRef = game.GetPlayer() 
 
 	panel = (self as quest) as OPPanel
 	taskmanager = (self as quest) as OPTaskManager
 
 	if ProstitutionLevel == -1 ; new prostitute
-
 		ProstitutionLevel = 1
 	endif 
 
@@ -160,24 +147,22 @@ Event OnInit()
 	LevelExpReqs[5] = 4200
 	LevelExpReqs[6] = 2147483647
 
-
 	SetLanternRadius()
 
 	DarkenBackground = true 
 	ActiveLantern = none 
 	LoadGameEvents = false
-	
-	oromance = game.GetFormFromFile(0x000800, "ORomance.esp") as ORomanceScript
-
 	UnregisterForAllModEvents()
 
+	;RequiredVersion = 25
+	InstallAddon("OProstitution NG")
+EndEvent
+
+Function RegisterEvents()
 	RegisterForModEvent("ostim_scenechanged", "OStim_SceneChanged")
 	RegisterForModEvent("ostim_thread_end", "OStim_End")
 	RegisterForModEvent("ostim_actor_orgasm", "OStim_Orgasm")
-
-	;RequiredVersion = 25
-	InstallAddon("OProstitution")
-EndEvent
+EndFunction
 
 Function SetLanternRadius()
 	lanternRadius = 64 + (ProstitutionLevel * 32)
@@ -304,9 +289,6 @@ Event OnKeyDown(int keyCode)
 EndEvent
 
 actor Function GetStoreOwner() 
-	faction innkeeper = GetFormFromFile(0x5091b, "skyrim.esm") as faction
-	faction merchant = GetFormFromFile(0x51596, "skyrim.esm") as faction
-
 	cell area = PlayerRef.GetParentCell()
 	if (area.GetActorOwner() == none) && (area.GetFactionOwner() == none )
 		; we are not in a store 
@@ -328,7 +310,7 @@ actor Function GetStoreOwner()
 	while i < nearby.Length
 		actor act = nearby[i] 
 
-		if (act.IsInFaction(innkeeper) || act.IsInFaction(merchant)) && act.IsInFaction(facowner) && !act.IsDead()
+		if (act.IsInFaction(InnkeeperFaction) || act.IsInFaction(MerchantFaction)) && act.IsInFaction(facowner) && !act.IsDead()
 			
 			return act 
 		endif 

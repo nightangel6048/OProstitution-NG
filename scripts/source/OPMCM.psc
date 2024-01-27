@@ -30,7 +30,6 @@ EndEvent
 
 Event OnConfigInit()
     ModName = "OProstitution NG"
-    Debug.Notification("OProstitution NG Initialized")
 EndEvent
 
 Function Init()

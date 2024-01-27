@@ -60,30 +60,26 @@ Function InitAllTasks()
 EndFunction
 
 Function GenerateTasks(actor npc)
-	int sexdesire = main.oromance.getSexDesireStat(npc)
     if ChanceRoll(15)
     	activeTasks = PapyrusUtil.StringArray(1, AnythingGoes)
 
     	main.UpcomingRep = 90
     	main.UpcomingPayout = 200
     else 
-    	int prude = main.oromance.getPrudishnessStat(npc)
+    	float attractivness = StorageUtil.GetFloatValue(npc, "ocr_attractiveness", 0)
 
     	int taskCount
-    	if prude < 34
+    	if attractivness < 1.0
     		taskcount = OSANative.RandomInt(1, 2)
-    	elseif prude < 67
+    	elseif attractivness < 1.25
     		taskcount = OSANative.RandomInt(1, 4)
-    	elseif prude < 86
+    	elseif attractivness < 1.5
     		taskcount = OSANative.RandomInt(2, 6)
     	else 
     		taskcount = OSANative.RandomInt(3, 6)
     	endif
 
     	activeTasks = PapyrusUtil.StringArray(0, "")
-
-    	
-
 
     	; ---- generate tasks
 
@@ -134,17 +130,11 @@ Function GenerateTasks(actor npc)
 
 
     if main.StoreOwner
-    	main.oromance.SeedIfNeeded(main.storeowner)
-    	float ownerPrude = main.oromance.getPrudishnessStat(main.StoreOwner)
-    	if ownerPrude > 93
-    		main.OwnersCut = 1.0
-    	else 
-    		ownerPrude /= 100.0 
-    		ownerPrude /= 2.0 
-    		ownerPrude += 0.05
-    		main.OwnersCut = ownerPrude
-    	endif 
-
+		if !StorageUtil.HasFloatValue(main.StoreOwner, "op_storeownercut")
+			StorageUtil.SetFloatValue(main.StoreOwner, "op_storeownercut", OSANative.RandomFloat(Min = 0.05, Max = 0.5))
+		endif
+		main.OwnersCut = StorageUtil.GetFloatValue(main.StoreOwner, "op_storeownercut", 0)
+    	
     	main.UpcomingPayout = main.UpcomingPayout - (main.OwnersCut * main.UpcomingPayout as float) as int 
     endif 
 
@@ -201,14 +191,12 @@ Function LoadInOrgasmTask()
 		endif 
 
 	else
-		if main.oromance.getSexDesireStat(main.client) > 50
-			if ChanceRoll(45) && (main.ostim.IsFemale(main.PlayerRef))
-				SetTaskAsActive(CumInsideVag)
-				main.UpcomingRep += 100
-				main.UpcomingPayout += 100 
-				return
-			endif 
-		endif 
+		if ChanceRoll(45) && (main.ostim.IsFemale(main.PlayerRef))
+			SetTaskAsActive(CumInsideVag)
+			main.UpcomingRep += 100
+			main.UpcomingPayout += 100 
+			return
+		endif
 
 
 		if chanceroll(50)
@@ -246,12 +234,10 @@ Function LoadInSexTask()
 		endif 
 
 	else 
-		if (main.oromance.getSexDesireStat(main.client) > 25)
-			if ChanceRoll(60) && (main.ostim.IsFemale(main.PlayerRef))
-				SetTaskAsActive(VaginalSex)
-				return
-			endif 
-		endif 
+		if ChanceRoll(60) && (main.ostim.IsFemale(main.PlayerRef))
+			SetTaskAsActive(VaginalSex)
+			return
+		endif
 
 		if ChanceRoll(75)
 			if ChanceRoll(50)
@@ -392,13 +378,11 @@ Function Cleanup()
 	if AllTasksComplete()
 		main.addexp(main.UpcomingRep)
 		main.PlayerRef.AddItem(main.gold, main.UpcomingPayout)
-		main.oromance.increaselikestat(main.client, OSANative.RandomInt(3, 9))
 
 		if chanceroll(20)
 			Debug.Notification("Recieved a tip!")
 			main.PlayerRef.AddItem(main.gold, OSANative.RandomInt(5, main.UpcomingPayout/3))
-			main.oromance.increaselovestat(main.client, 1)
-			main.oromance.oui.FireSuccessIncidcator(0)
+			main.panel.FireSuccessIncidcator(0)
 		endif 
 	else 
 		Debug.Notification("You missed some things...")
@@ -412,11 +396,8 @@ Function Cleanup()
 			main.PlayerRef.AddItem(main.gold, goldc)
 		else 
 			Debug.Notification("The client refuses to pay")
-			main.oromance.increasehatestat(main.client, 1)
 		endif 
-		main.oromance.oui.FireSuccessIncidcator(1)
-
-		main.oromance.increasedislikestat(main.client, OSANative.RandomInt(9, 15))
+		main.panel.FireSuccessIncidcator(1)
 	endif
 	main.SetAsLongTermFollower(main.client, false)
 	main.client = none
@@ -498,7 +479,7 @@ EndFunction
 Function SetTaskComplete(string task)
 	int taskID = activeTasks.Find(task)
 	if !taskCompletionState[taskid]
-		main.oromance.oui.FireSuccessIncidcator(3)
+		main.panel.FireSuccessIncidcator(2)
 	endif 
 	taskCompletionState[taskid] = true
 EndFunction
@@ -533,4 +514,3 @@ Function LoadTask(string taskId, string Icon, string name, int colorType)
 	TaskNames = PapyrusUtil.PushString(TaskNames, name)
 	TaskColor = PapyrusUtil.pushint(TaskColor, colortype)
 EndFunction
-

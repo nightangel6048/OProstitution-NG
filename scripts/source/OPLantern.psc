@@ -2,14 +2,11 @@ ScriptName OPLantern Extends ObjectReference
 import outils 
 
 light property lampLight auto
+Form property LampItem auto
 ObjectReference lightobj
 actor playerref
 
 opmain main
-oromancescript oromance
-
-;ReferenceAlias Property PlayerFollowerAlias Auto
-;ReferenceAlias Property WaitAlias Auto
 
 int Property CellBonus
 	int Function Get()
@@ -38,7 +35,6 @@ Event onload()
 	main = opmain.Get() 
 	
 	playerref = game.GetPlayer()
-	oromance = game.GetFormFromFile(0x000800, "ORomance.esp") as ORomanceScript
 
 	lastTimeOfDay = gettimeofday()
 
@@ -161,7 +157,7 @@ Function Scan()
 		nearby = outils.ShuffleActorArray(nearby)
 
 	int plevel = main.ProstitutionLevel
-	int prudeMax = 50 + (plevel * 3) ; 65 at max
+	float attractivenessHelper = (plevel * 0.03) ; 0.15 at max
 
 
 	int i = 0 
@@ -186,24 +182,12 @@ Function Scan()
 			
 			if npc.GetRelationshipRank(playerref) < 3 ;not close friends
 				if !npc.IsHostileToActor(playerref)
-					
-					
 					if GetArousalChance(npc) > -15
-
-						main.oromance.SeedIfNeeded(npc)
-						int prude = main.oromance.getPrudishnessStat(npc)
-
-						if main.oromance.getMonogamyDesireStat(npc) > 30
-							if main.oromance.IsMarried(npc)
-								prude += 50
-							endif 
-
-							if main.oromance.HasGFBF(npc)
-								prude += 25
-							endif 
-						endif 
-
-						if (prude <= prudeMax) ; only npcs who like prostitution 
+						CalculateAttractivenessIfNeeded(npc)
+						float attractiveness = StorageUtil.GetFloatValue(npc, "ocr_attractiveness", 0)
+						Console("Attractiveness for " + npc.GetDisplayName() + " is " + attractiveness)
+						
+						if (attractiveness >= (1.0 - attractivenessHelper)) ; only npcs who find the player sufficiently attractive
 							if (utility.getcurrentgametime() - GetNPCDataFloat(npc, main.LastProstTimeKey)) > 1 ; exclude recent customers
 								if CheckOutGoods(npc)
 									; that's all, NPC selected.
@@ -238,10 +222,20 @@ Function Scan()
 	OSANative.unlock("op_scan")
 EndFunction
 
+function ExitDialogue(Actor npc, int waitTime = 2)
+	game.EnablePlayerControls()
+
+	Utility.Wait(waittime)
+	main.SetAsFollower(npc, false)
+	Utility.Wait(1)
+	main.SetAsWaiting(npc, false)
+
+	npc.EvaluatePackage()
+endfunction
+
 bool Function CheckOutGoods(actor act)
 {NPC approaches player and thinks about buying them}
-	;oromance.OUI.ExitDialogue(0)
-	;oromance.oui.npc = act 
+	ExitDialogue(act, 0)
 	if !main.FollowerSetThread(act)
 		;Console("Rejecting stuck " + act.GetDisplayName())
 		return false 
@@ -254,24 +248,9 @@ bool Function CheckOutGoods(actor act)
 
 		debug.SendAnimationEvent(act, idles[osanative.RandomInt(0, idles.Length - 1)])
 
-
-		
-
-		int like = main.oromance.getlikestat(act) as int + (main.oromance.getlovestat(act) * 3) as int 
-		int dislike = main.oromance.getdislikestat(act) as int + (main.oromance.gethatestat(act) * 3) as int 
-
-		int chance = like - dislike 
-
-		chance *= 4
-		chance += 75
-
-		if chance < 25 
-			chance = 0
-		endif 
-
 		;console(chance)
 		;Console(GetArousalChance(act))
-		if ChanceRoll(chance) && ChanceRoll(GetArousalChance(act))
+		if ChanceRoll(GetArousalChance(act))
 			Utility.Wait(osanative.RandomFloat(1.0, 3.0))
 			selected = main.OfferCustomer(act)  
 		else 
@@ -293,38 +272,48 @@ bool Function CheckOutGoods(actor act)
 EndFunction
 
 int Function GetArousalChance(actor act)
-	int arousal = main.oa.GetArousal(act) as int 
+	int arousal = main.oa.GetArousal(act) as int
+	return arousal
 
-		bool playerGender = AppearsFemale(playerref)
+		;bool playerGender = AppearsFemale(playerref)
 
-		if AppearsFemale(act)
-			arousal -= 75
-		endif 
+		;if AppearsFemale(act)
+		;	arousal -= 75
+		;endif 
 
-		int sexuality = main.oromance.GetSexuality(act)
-		if sexuality != 1
-			if sexuality == 0
-				if playergender == AppearsFemale(act)
-					arousal -= 95
-				endif 
-			elseif sexuality == 2
-				if playerGender != AppearsFemale(act)
-					arousal -= 95
-				else 
-					arousal += 15
-				endif 
-			endif 
-		endif 
+		;int sexuality = main.oromance.GetSexuality(act)
+		;if sexuality != 1
+		;	if sexuality == 0
+		;		if playergender == AppearsFemale(act)
+		;			arousal -= 95
+		;		endif 
+		;	elseif sexuality == 2
+		;		if playerGender != AppearsFemale(act)
+		;			arousal -= 95
+		;		else 
+		;			arousal += 15
+		;		endif 
+		;	endif 
+		;endif 
 
-		int sexDesire = main.oromance.getSexDesireStat(act)
+		;int sexDesire = main.oromance.getSexDesireStat(act)
 
-		arousal += ((50.0 * (sexDesire as float / 100.0)) - 25.0) as int ; sex desire adds permanent +-/25 mod
+		;arousal += ((50.0 * (sexDesire as float / 100.0)) - 25.0) as int ; sex desire adds permanent +-/25 mod
 
-		arousal += 25 
+		;arousal += 25 
 
-		return arousal 
+		;return arousal 
 
 EndFunction
+
+function CalculateAttractivenessIfNeeded(Actor npc)
+	; TODO: Recalculate attractiveness when necessary
+	if (StorageUtil.HasFloatValue(npc, "ocr_attractiveness"))
+		return
+	endif
+	float attractiveness = main.attraction.CalculateNPCAttraction(npc)
+	StorageUtil.SetFloatValue(npc, "ocr_attractiveness", attractiveness)
+endfunction
 
 Event OnActivate(ObjectReference akActionRef)
 	MainMenu()
@@ -410,16 +399,16 @@ Function GoLegal()
 endfunction 
 
 Function PickUp()
-	playerref.AddItem(GetFormFromFile(0x1803, "oprostitution.esp"))
+	playerref.AddItem(LampItem)
 
-		UnregisterForUpdate()
+	UnregisterForUpdate()
 
-		lightobj.Disable()
-		lightobj.Delete()
+	lightobj.Disable()
+	lightobj.Delete()
 
 
-		Disable()
-		Delete()
+	Disable()
+	Delete()
 endfunction 
 
 Function LightMenu()

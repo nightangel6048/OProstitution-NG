@@ -4,8 +4,7 @@ import osanative
 
 opmain main 
 OPTaskManager manager
-iwant_widgets iWidgets
-
+iwant_widgets property iWidgets auto
 
 int hCenter = 360
 int wCenter = 640
@@ -52,37 +51,38 @@ int SlotRightClose = 10
 int SlotRightFar = 11
 
 Event OnInit()
-	iWidgets = game.GetFormFromFile(0x000800, "iWant Widgets.esl") as iwant_widgets
-
-	if iWidgets == None
-		iWidgets = game.GetFormFromFile(0x000800, "iWant Widgets.esp") as iwant_widgets
-		if iWidgets == None
-			debug.MessageBox("OProstitution: iWant Widgets is not installed, install failed. Please exit now and reread the requirements page")
-		endif
-	endif 
-
 	main = (self as quest) as opmain
 	manager = (self as quest) as OPTaskManager
-
+	
 	colorPink = new int[3]
 	colorPink[0] = 119
 	colorPink[1] = 6
 	colorPink[2] = 54
-
+	
 	colorGreen = new int[3]
 	colorGreen[0] = 62
 	colorGreen[1] = 162
 	colorGreen[2] = 90
-
+	
 	colorLightRed = new int[3]
 	colorLightRed[0] = 128
 	colorLightRed[1] = 0
 	colorLightRed[2] = 33
-
+	
 	colorBlue = new int[3]
 	colorBlue[0] = 6
 	colorBlue[1] = 73
 	colorBlue[2] = 128
+	
+EndEvent
+
+Function RegisterEvents()
+	RegisterForModEvent("op_success", "SuccessIndicatorThread")
+	RegisterForModEvent("iWantWidgetsReset", "OniWantWidgetsReset")
+EndFunction
+
+Event OniWantWidgetsReset(String eventName, String strArg, Float numArg, Form sender)
+	iWidgets = sender as iwant_widgets
 EndEvent
 
 bool Function OfferChoice()
@@ -561,3 +561,50 @@ function FadeElementOut(int[] element)
 		i += 1
 	EndWhile
 endfunction
+
+function FireSuccessIncidcator(int type)
+	;int handle = ModEvent.Create("op_success")
+
+	;ModEvent.PushInt(handle, type)
+
+
+	;ModEvent.Send(handle)
+	Debug.Trace("OProstitution fired success indicator type " + type)
+	SuccessIndicatorThread(type)
+endfunction 
+
+Int nameX = 640
+int nameY = 660
+Event SuccessIndicatorThread(int type) 
+	Debug.Trace("OProstitution got success indicator type " + type)
+	string icon
+	int[] color
+	if type == 0
+		icon = "op_heart"
+		color = colorPink
+	elseif type == 1
+		icon = "op_cross"
+		color = colorlightRed 
+	elseif type == 2
+		icon = "op_checkmark"
+		color = colorGreen
+	endif 
+
+	Int Indicator = iWidgets.loadLibraryWidget(icon)
+	iWidgets.setRGB(Indicator, color[0], color[1], color[2])
+	iWidgets.setSize(Indicator, size/6, size/6)
+	iWidgets.setPos(Indicator, nameX, nameY - 10)
+	iwidgets.setTransparency(Indicator, 100)
+	iWidgets.setVisible(Indicator)
+	float time = 0.5
+
+	iwidgets.doTransitionByTime(Indicator,  nameY - 40,  seconds = time,  targetAttribute = "y",  easingClass = "strong",  easingMethod = "out",  delay = 0.0)
+	Utility.Wait(time)
+
+	Utility.Wait(time/2)
+
+	iwidgets.doTransitionByTime(Indicator,  0,  seconds = time,  targetAttribute = "alpha",  easingClass = "none",  easingMethod = "none",  delay = 0.0)
+	Utility.wait(time)
+
+	iwidgets.destroy(Indicator)
+EndEvent
