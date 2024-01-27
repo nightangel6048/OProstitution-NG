@@ -73,6 +73,8 @@ Event OnInit()
 	colorBlue[0] = 6
 	colorBlue[1] = 73
 	colorBlue[2] = 128
+
+	RegisterEvents()
 	
 EndEvent
 

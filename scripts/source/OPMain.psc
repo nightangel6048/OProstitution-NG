@@ -154,6 +154,8 @@ Event OnInit()
 	LoadGameEvents = false
 	UnregisterForAllModEvents()
 
+	RegisterEvents()
+
 	;RequiredVersion = 25
 	InstallAddon("OProstitution NG")
 EndEvent

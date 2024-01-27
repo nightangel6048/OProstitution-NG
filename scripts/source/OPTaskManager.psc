@@ -371,9 +371,8 @@ Function Cleanup()
 
 	ostim.UseAIControl = bAiControl
 
-	if (!OUtils.IsUIVisible())
-		OUtils.SetUIVisible(true)
-	endif
+	OUtils.SetUIVisible(false)
+	OUtils.SetUIVisible(true)
 
 	if AllTasksComplete()
 		main.addexp(main.UpcomingRep)

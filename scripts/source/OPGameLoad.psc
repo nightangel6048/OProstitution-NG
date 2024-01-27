@@ -10,13 +10,21 @@ int function GetVersion()
 endfunction
 
 Event OnPlayerLoadGame()
-    main = self.GetOwningQuest() as OPMain
+    Debug.Trace("OProstitution registering events")
+    main = GetOwningQuest() as OPMain
     main.RegisterEvents()
-    panel = self.GetOwningQuest() as OPPanel
+    panel = GetOwningQuest() as OPPanel
     panel.RegisterEvents()
 
     if currentVersion < GetVersion()
         ; Upgrade logic
     endif
     currentVersion = GetVersion()
+EndEvent
+
+Event OnCellLoad()
+    ; Force recalculation of attractiveness for NPCs when player moves cell
+    ; Only will happen when a new cell is actually loaded (not from cache) but should be often enough
+    int clearedValueCount = StorageUtil.ClearFloatValuePrefix("ocr_attractiveness")
+    Debug.Trace("Cleared attractiveness values for " + clearedValueCount + " npcs")
 EndEvent
